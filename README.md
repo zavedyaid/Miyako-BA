@@ -1,4 +1,4 @@
-# ❄ Tsukiyuki Miyako - EMDI
+# ❄ Miyako - EMDI
 
 WhatsApp bot di atas **@zavedyaid/baileys** (fork Baileys dengan pesan interaktif bawaan). Import Baileys lewat `#lib/baileys`.
 
@@ -14,7 +14,7 @@ Isi `ownerNumbers` di `config/config.json` lebih dulu. Butuh Node ≥ 20.11 dan 
 ## Struktur
 
 ```
-Yuki-Archive/
+Miyako-Emdi/
 ├── main.js          boot, koneksi, reconnect, scheduler
 ├── handler.js       alur pesan masuk + semua middleware
 ├── events.js        sambutan grup, buka/tutup, anti-delete, anti-call
