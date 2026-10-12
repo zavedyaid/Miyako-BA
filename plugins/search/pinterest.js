@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
-import { sleep } from "#lib/utils";
+import { logger } from "#lib/logger";
+import { getBuffer, sleep } from "#lib/utils";
 
 /*
  * Pengolahan respons Pinterest ada di plugin ini (api.js hanya menyambung ke API).
@@ -48,6 +49,7 @@ const parsePins = (data) =>
 
 const DEFAULT_COUNT = 5;
 const MAX_COUNT = 10;
+const MIN_BYTES = 2000; // file lebih kecil dari ini bukan gambar (halaman error, dll)
 
 export default definePlugin({
   name: "pinterest",
@@ -73,19 +75,27 @@ export default definePlugin({
       const total = Math.min(Math.max(Number.parseInt(rawCount, 10) || DEFAULT_COUNT, 1), MAX_COUNT, pins.length);
       const shuffled = [...pins].sort(() => Math.random() - 0.5);
 
-      // Gambar biasa + teks, satu per satu. Gambar yang gagal diunduh dilewati dan diganti berikutnya.
+      // Unduh dulu (cadangan beberapa gambar), lalu kirim sebagai gambar biasa — bukan link preview.
+      const downloads = await Promise.allSettled(
+        shuffled.slice(0, total + 4).map(async (pin) => {
+          const buffer = await getBuffer(pin.image);
+          if (buffer.length < MIN_BYTES) throw new Error("bukan gambar");
+          return { buffer, title: pin.title };
+        }),
+      );
+      const images = downloads.filter((d) => d.status === "fulfilled").map((d) => d.value);
+      for (const d of downloads) if (d.status === "rejected") logger.warn(`Pinterest: gambar dilewati (${d.reason?.message})`);
+      if (!images.length) throw new ApiError("Semua gambar gagal diunduh.");
+
       let sent = 0;
-      for (const pin of shuffled) {
+      for (const image of images) {
         if (sent >= total) break;
         try {
-          await ctx.reply({
-            image: { url: pin.image },
-            caption: `📌 *Pinterest* · ${sent + 1}/${total}\n🔎 ${query}${pin.title ? `\n📝 ${pin.title}` : ""}`,
-          });
+          await ctx.reply({ image: image.buffer, caption: `📌 *Pinterest* · ${sent + 1}/${Math.min(total, images.length)}\n🔎 ${query}${image.title ? `\n📝 ${image.title}` : ""}` });
           sent++;
           if (sent < total) await sleep(700);
-        } catch {
-          // lewati
+        } catch (err) {
+          logger.warn(`Pinterest: gagal mengirim gambar (${err.message})`);
         }
       }
 
