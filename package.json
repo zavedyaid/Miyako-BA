@@ -1,0 +1,32 @@
+{
+  "name": "Miyako-BA",
+  "version": "1.0.0",
+  "description": "Miyako - BA — WhatsApp bot on @zavedyaid/baileys",
+  "type": "module",
+  "main": "main.js",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "start": "node main.js",
+    "dev": "node --watch-path=./lib --watch-path=./handler.js --watch-path=./events.js main.js"
+  },
+  "imports": {
+    "#lib/*": "./lib/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZavedyaID/Miyako-BA.git"
+  },
+  "keywords": ["whatsapp-bot", "baileys", "multi-device"],
+  "author": "ZavedyaID",
+  "license": "MIT",
+  "dependencies": {
+    "@zavedyaid/baileys": "latest",
+    "chalk": "^5.4.1",
+    "chokidar": "^4.0.3",
+    "node-webpmux": "^3.2.0",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

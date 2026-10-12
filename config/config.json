@@ -1,0 +1,65 @@
+{
+  "name": "Miyako - BA",
+  "owner": "ZavedyaID",
+  "number": "",
+  "version": "1.0.0",
+  "prefix": "^[.]",
+  "timezone": "Asia/Jakarta",
+  "newsletterJid": "120363404577029184@newsletter",
+  "channel": "https://whatsapp.com/channel/0029VbC6Qmr4dTnGB19pok0Y",
+  "ChannelName": "Tsukiyuki Miyako - EMDI",
+  "ownerNumbers": [
+    "6285754734841"
+  ],
+  "ownerLids": [],
+  "social": {
+    "website": "https://zavedya.id",
+    "github": "https://github.com/ZavedyaID",
+    "group": "https://chat.whatsapp.com/HBsaNWf8BjnHyF0qn3zC65"
+  },
+  "sticker": {
+    "packname": "Miyako - BA",
+    "author": "ZavedyaID"
+  },
+  "limit": {
+    "default": 25
+  },
+  "behavior": {
+    "staleAfterSeconds": 120
+  },
+  "features": {
+    "selfMode": false,
+    "antiCall": false,
+    "statusReact": false,
+    "cmdSuggest": true,
+    "levelUpNotif": true
+  },
+  "promo": {
+    "text": "Artificial Intelligence, The beginning of the robot era",
+    "code": "ZavedyaID",
+    "url": "https://zavedya.id",
+    "hours": 24,
+    "expiryUnit": "ms"
+  },
+  "api": {
+    "baseUrl": "https://api.zavedya.id",
+    "timeout": 60000
+  },
+  "donate": {
+    "title": "Donasi - Seikhlasnya",
+    "description": "Berapapun donasinya",
+    "text": "Terima kasih sudah mendukung bot ini ❤️\nDonasi membantu biaya server dan pengembangan fitur baru.",
+    "links": [],
+    "accounts": [
+      {
+        "text": "📋 DANA",
+        "code": "087827530894"
+      },
+      {
+        "text": "📋 GoPay",
+        "code": "087827530894"
+      }
+    ],
+    "catalog": "https://wa.me/p/27975888435423933/6285754734841"
+  }
+}
