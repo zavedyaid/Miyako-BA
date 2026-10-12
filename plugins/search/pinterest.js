@@ -87,13 +87,18 @@ export default definePlugin({
       for (const d of downloads) if (d.status === "rejected") logger.warn(`Pinterest: gambar dilewati (${d.reason?.message})`);
       if (!images.length) throw new ApiError("Semua gambar gagal diunduh.");
 
+      // Tanpa reply/fake quote supaya gambar beruntun menyatu di chat; teks hanya di gambar pertama.
+      const count = Math.min(total, images.length);
       let sent = 0;
       for (const image of images) {
-        if (sent >= total) break;
+        if (sent >= count) break;
         try {
-          await ctx.reply({ image: image.buffer, caption: `📌 *Pinterest* · ${sent + 1}/${Math.min(total, images.length)}\n🔎 ${query}${image.title ? `\n📝 ${image.title}` : ""}` });
+          await ctx.reply(
+            { image: image.buffer, ...(sent === 0 && { caption: `📌 *Pinterest* · ${count} gambar\n🔎 ${query}` }) },
+            { quoted: false },
+          );
           sent++;
-          if (sent < total) await sleep(700);
+          if (sent < count) await sleep(700);
         } catch (err) {
           logger.warn(`Pinterest: gagal mengirim gambar (${err.message})`);
         }

@@ -20,7 +20,7 @@
   },
   "keywords": ["whatsapp-bot", "baileys", "multi-device"],
   "author": "ZavedyaID",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "@zavedyaid/baileys": "latest",
     "chalk": "^5.4.1",
