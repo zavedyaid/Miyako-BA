@@ -100,6 +100,6 @@ Database sekarang di `database/`. File lama di `lib/database/*.json` disalin oto
 
 ## Author
 
--`ZavedyaID ( Developer )`, 
--`RullzFuqi ( Base / Partner )`,
--`ZavedyaAPI ( Penyedia Api )`,
+- `ZavedyaID ( Developer )`, 
+- `RullzFuqi ( Base / Partner )`,
+- `ZavedyaAPI ( Penyedia Api )`,
