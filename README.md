@@ -1,4 +1,4 @@
-# ❄ Miyako - EMDI
+# Miyako - EMDI
 
 WhatsApp bot di atas **@zavedyaid/baileys** (fork Baileys dengan pesan interaktif bawaan). Import Baileys lewat `#lib/baileys`. Semua Fitur Memakai 1 Api yaitu `https://api.zavedya.id` yang ditempatkan di `lib/api.js`.
 
