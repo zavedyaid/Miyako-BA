@@ -97,3 +97,9 @@ Tambahkan `async passive(env) {}` untuk plugin yang jalan di setiap pesan.
 ## Migrasi
 
 Database sekarang di `database/`. File lama di `lib/database/*.json` disalin otomatis saat run pertama. Folder `session/` lama tetap bisa dipakai. Jika bot tidak mengenali Anda sebagai owner, isi `ownerLids` dengan LID Anda (lihat lewat `.eval ctx.senderLid`).
+
+## Author
+
+ZavedyaID ( Developer )
+RullzFuqi ( Base / Partner )
+ZavedyaAPI ( Penyedia Api )
