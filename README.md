@@ -1,4 +1,4 @@
-# ❄ Yuki Archive
+# ❄ Tsukiyuki Miyako - EMDI
 
 WhatsApp bot di atas **@zavedyaid/baileys** (fork Baileys dengan pesan interaktif bawaan). Import Baileys lewat `#lib/baileys`.
 
