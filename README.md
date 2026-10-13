@@ -497,7 +497,8 @@ Khusus nomor di `ownerNumbers` (`access: { owner: true }`):
 
 - **ZavedyaID** — Developer & pemilik project  
   [Website](https://zavedya.id) • [GitHub](https://github.com/ZavedyaID)
-- **[WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys)** dan **Lia Wynn (itsliaaa)** — fondasi library yang dipakai fork `@zavedyaid/baileys`.
-- Susunan dokumentasi ini terinspirasi dari README **Experimental-Bell** oleh Rifza.
+- **RullzFuqi** — Base Dari Bot Ini [GitHub](https://github.com/RullzFuqi)
+- **[zavedyaid/baileys](https://github.com/ZavedyaID/baileys)** — Sebagai connecting semuanya.
+- **ZavedyaApi's** — Penyedia Api. [Website](https://api.zavedya.id)
 
 Project ini dilisensikan di bawah [MIT License (Modified)](./LICENSE) © ZavedyaID — **tidak boleh dijual atau dipakai untuk tujuan komersial tanpa izin tertulis dari pemegang hak cipta.**
