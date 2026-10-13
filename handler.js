@@ -44,7 +44,8 @@ const premiumActive = (user) => {
 
 const identity = (env, next) => {
   const { ctx } = env;
-  const owner = ctx.fromMe || isOwnerIdentity({ pn: ctx.senderPn, lid: ctx.senderLid });
+  const who = { pn: ctx.senderPn, lid: ctx.senderLid };
+  const owner = ctx.fromMe || isOwnerIdentity(who) || db.isExtraOwner(who);
 
   env.user = db.user(ctx.senderId, ctx.pushName);
   env.chat = ctx.isGroup ? db.group(ctx.chatId) : null;

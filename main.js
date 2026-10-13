@@ -175,6 +175,7 @@ process.on("uncaughtException", (err) => logger.error(`uncaughtException: ${err?
 logger.banner({ name: config.name, version: config.version, node: process.versions.node });
 
 db.load();
+Object.assign((config.features ??= {}), db.settings.features); // toggle fitur dari .on owner
 await registry.loadAll();
 registry.watch();
 startScheduler();
