@@ -1,5 +1,7 @@
 import { definePlugin } from "#lib/plugins";
-import { bare } from "#lib/utils";
+import { groups } from "#lib/groups";
+import { AI_MODELS } from "#lib/autoai";
+import { bare, truncate } from "#lib/utils";
 
 /*
  * .set <group|owner> <opsi> <nilai>
@@ -35,7 +37,7 @@ const GROUP = {
     },
   },
   desc: {
-    aliases: ["deskripsi", "description", "bio"],
+    aliases: ["deskripsi", "description"],
     bot: true,
     help: "desc <teks|-> — ganti deskripsi (- untuk menghapus)",
     async run({ sock, ctx }, value) {
@@ -62,22 +64,26 @@ const GROUP = {
   },
   welcome: {
     aliases: ["sambutan"],
-    help: "welcome <teks|reset> — pesan anggota masuk (@user @subject @count)",
+    help: "welcome <teks|reset> — pesan anggota masuk",
     async run({ ctx, chat, db }, value) {
-      if (!value) throw new Error("Tulis teksnya. Variabel: @user @subject @count");
+      if (!value) {
+        return `👋 *Welcome* saat ini:\n${chat.sWelcome || "(bawaan)"}\n\nVariabel: @user @subject @count @desc @author\nContoh: ${ctx.prefix}set group welcome Halo @user, selamat datang di @subject!\nAktifkan: ${ctx.prefix}on welcome`;
+      }
       chat.sWelcome = /^(reset|default)$/i.test(value) ? "" : value;
       db.save("groups");
-      return chat.sWelcome ? "✅ Pesan welcome diganti." : "✅ Pesan welcome kembali ke bawaan.";
+      return chat.sWelcome ? `✅ Pesan *welcome* diganti.${chat.welcome ? "" : `\n⚠️ Fitur welcome belum aktif — nyalakan dengan ${ctx.prefix}on welcome`}` : "✅ Pesan welcome kembali ke bawaan.";
     },
   },
-  bye: {
-    aliases: ["goodbye", "perpisahan"],
-    help: "bye <teks|reset> — pesan anggota keluar (@user @subject @count)",
-    async run({ chat, db }, value) {
-      if (!value) throw new Error("Tulis teksnya. Variabel: @user @subject @count");
+  goodbye: {
+    aliases: ["bye", "perpisahan"],
+    help: "goodbye <teks|reset> — pesan anggota keluar",
+    async run({ ctx, chat, db }, value) {
+      if (!value) {
+        return `🚪 *Goodbye* saat ini:\n${chat.sBye || "(bawaan)"}\n\nVariabel: @user @subject @count @desc @author\nContoh: ${ctx.prefix}set group goodbye Sampai jumpa @user!\nAktifkan: ${ctx.prefix}on goodbye`;
+      }
       chat.sBye = /^(reset|default)$/i.test(value) ? "" : value;
       db.save("groups");
-      return chat.sBye ? "✅ Pesan bye diganti." : "✅ Pesan bye kembali ke bawaan.";
+      return chat.sBye ? `✅ Pesan *goodbye* diganti.${chat.goodbye ? "" : `\n⚠️ Fitur goodbye belum aktif — nyalakan dengan ${ctx.prefix}on goodbye`}` : "✅ Pesan goodbye kembali ke bawaan.";
     },
   },
   chat: {
@@ -87,6 +93,7 @@ const GROUP = {
     async run({ sock, ctx }, value) {
       const mode = choice(value, ADMIN_ALL);
       if (!mode) throw new Error("Pilih: admin atau all.");
+      groups.silence(ctx.chatId);
       await sock.groupSettingUpdate(ctx.chatId, mode === "admin" ? "announcement" : "not_announcement");
       return mode === "admin" ? "🔒 Hanya admin yang bisa chat." : "🔓 Semua anggota bisa chat.";
     },
@@ -149,12 +156,18 @@ const OWNER = {
     },
   },
   bio: {
-    aliases: ["status", "about"],
-    help: "bio <teks> — ganti info/bio bot",
+    aliases: ["status", "about", "info"],
+    help: "bio <teks> — ganti info/bio bot (maks 139 karakter)",
     async run({ sock }, value) {
-      if (!value) throw new Error("Tulis bio-nya.");
-      await sock.updateProfileStatus(value);
-      return "✅ Bio bot diperbarui.";
+      const text = value.replace(/\s+/g, " ").trim();
+      if (!text) throw new Error("Tulis bio-nya. Contoh: .set owner bio Miyako siap bertugas");
+      if (text.length > 139) throw new Error(`Bio maksimal 139 karakter (sekarang ${text.length}).`);
+      try {
+        await sock.updateProfileStatus(text);
+      } catch (err) {
+        throw new Error(`WhatsApp menolak perubahan bio (${err.message || "tanpa pesan"}). Coba lagi sebentar lagi.`);
+      }
+      return `✅ Bio bot → *${text}*`;
     },
   },
   pp: {
@@ -172,6 +185,29 @@ const OWNER = {
       return "✅ Foto profil bot diperbarui.";
     },
   },
+  persona: {
+    aliases: ["aipersona", "karakter"],
+    help: "persona <teks|reset> — karakter AutoAI (kosong = lihat saat ini)",
+    async run({ db }, value) {
+      if (!value) return `🎭 *Persona AutoAI*\n${db.settings.autoAiPersona ? truncate(db.settings.autoAiPersona, 1200) : "(bawaan: Tsukiyuki Miyako)"}`;
+      if (/^(reset|default)$/i.test(value)) delete db.settings.autoAiPersona;
+      else db.settings.autoAiPersona = value;
+      db.save("settings");
+      return /^(reset|default)$/i.test(value) ? "✅ Persona AutoAI kembali ke Miyako (bawaan)." : "✅ Persona AutoAI diganti.";
+    },
+  },
+  aimodel: {
+    aliases: ["ai", "modelai"],
+    help: `aimodel <${AI_MODELS.join("|")}> — AI yang dipakai AutoAI`,
+    async run({ db }, value) {
+      const name = value.toLowerCase();
+      if (!name) return `🤖 AI AutoAI saat ini: *${db.settings.autoAiModel ?? "gemini"}*\nPilihan: ${AI_MODELS.join(", ")}`;
+      if (!AI_MODELS.includes(name)) throw new Error(`Pilih salah satu: ${AI_MODELS.join(", ")}`);
+      db.settings.autoAiModel = name;
+      db.save("settings");
+      return `✅ AutoAI sekarang memakai *${name}*.`;
+    },
+  },
   mode: {
     aliases: [],
     help: "mode <self|public> — self = hanya owner yang bisa pakai bot",
@@ -183,6 +219,18 @@ const OWNER = {
       return `✅ Mode bot: *${mode.toUpperCase()}*`;
     },
   },
+};
+
+const PRESETS = {
+  setbio: "owner bio",
+  setwelcome: "group welcome",
+  setgoodbye: "group goodbye",
+  setbye: "group goodbye",
+  setname: "group name",
+  setnamegc: "group name",
+  setdesc: "group desc",
+  setdeskripsi: "group desc",
+  setppgc: "group pp",
 };
 
 const find = (table, name) => {
@@ -200,17 +248,27 @@ const helpText = (pfx, isOwner) =>
     `👑 *owner* (khusus owner${isOwner ? "" : " — kamu bukan owner"})`,
     ...Object.values(OWNER).map((o) => `• ${pfx}set owner ${o.help}`),
     "",
-    `💡 Fitur on/off (welcome, antilink, dll) → *${pfx}on* / *${pfx}off*`,
+    `💡 Singkatan: ${pfx}setbio, ${pfx}setwelcome, ${pfx}setgoodbye, ${pfx}setname, ${pfx}setdesc`,
+    `💡 Fitur on/off (welcome, goodbye, antilink, autoai, dll) → *${pfx}on* / *${pfx}off*`,
   ].join("\n");
 
 export default definePlugin({
   name: "set",
-  aliases: ["setting", "atur"],
+  aliases: ["setting", "atur", ...Object.keys(PRESETS)],
   category: "group",
   description: "Atur grup (set group …) atau bot (set owner …)",
   usage: "set <group|owner> <opsi> <nilai>",
   async run(env) {
     const { ctx, role, group } = env;
+
+    // Singkatan: .setbio, .setwelcome, .setgoodbye, .setname, .setdesc, .setpp → ".set <lingkup> <opsi> …"
+    const preset = PRESETS[ctx.command];
+    // Opsi khusus owner boleh tanpa kata "owner": .set bio …  .set persona …  .set aimodel …
+    const first = ctx.args[0]?.toLowerCase();
+    const bareOwner = !preset && role.owner && first && !["group", "grup", "owner"].includes(first) && !find(GROUP, first) && find(OWNER, first);
+    if (preset) ctx.argsStr = `${preset} ${ctx.argsStr}`.trim();
+    else if (bareOwner) ctx.argsStr = `owner ${ctx.argsStr}`;
+
     const match = ctx.argsStr.match(/^(\S+)(?:\s+(\S+))?(?:\s+([\s\S]*))?$/);
     const [scope, option, value = ""] = match ? [match[1].toLowerCase(), match[2], (match[3] ?? "").trim()] : [];
 

@@ -1,8 +1,9 @@
 import { definePlugin } from "#lib/plugins";
+import { STATUS_MAX_SECONDS, audioToVideo } from "#lib/media";
 
 /*
  * Posting status grup (Group Status) lewat opsi `groupStatus` @zavedyaid/baileys.
- * Hanya admin grup & owner. Mendukung teks, gambar, video, dan audio.
+ * Hanya admin grup & owner. Mendukung teks, gambar, video, dan audio (audio diubah jadi video — lihat lib/media.js).
  *   .swgc <teks>                       → status teks
  *   kirim / reply gambar|video + .swgc [caption]
  *   kirim / reply audio + .swgc
@@ -18,12 +19,19 @@ export default definePlugin({
     const media = ctx.hasMedia ? await ctx.fetchMedia().catch(() => null) : null;
     const text = ctx.argsStr || ctx.quotedText || "";
     let payload;
+    let note = "";
 
     if (media) {
       if (["image", "video"].includes(media.kind)) {
         payload = { [media.kind]: media.buffer, ...(text && { caption: text }) };
       } else if (media.kind === "audio") {
-        payload = { audio: media.buffer, mimetype: media.mimetype || "audio/mpeg" };
+        // Audio mentah tidak didukung sebagai status (muncul "update WhatsApp"): bungkus jadi video, maks 60 detik.
+        ctx.react("⏳");
+        const video = await audioToVideo(media.buffer).catch(() => {
+          throw new Error("Audio tidak bisa diubah jadi video status (file rusak atau format tidak didukung).");
+        });
+        payload = { video, mimetype: "video/mp4", ...(text && { caption: text }) };
+        note = `\n🎵 Audio dikirim sebagai video status (maks ${STATUS_MAX_SECONDS} detik).`;
       } else {
         return ctx.reply("❌ Status grup hanya mendukung teks, gambar, video, dan audio.");
       }
@@ -37,7 +45,7 @@ export default definePlugin({
     try {
       await ctx.reply({ ...payload, groupStatus: true }, { quoted: false });
       ctx.react("✅");
-      await ctx.reply("✅ Status grup terkirim.");
+      await ctx.reply(`✅ Status grup terkirim.${note}`);
     } catch (err) {
       ctx.react("❌");
       throw err;

@@ -36,7 +36,7 @@
 - **Pesan Interaktif Bawaan Fork**: Gambar header, baris promo, tombol URL / salin / balas cepat, serta **List Menu** bertingkat (Utama, Kategori, Support) lewat `nativeFlow` `@zavedyaid/baileys`.
 - **Menu Bertingkat**: Satu tombol *List Menu* berisi sub-list, baris balas ↩ langsung, dan daftar kategori yang dibuat otomatis dari plugin yang terpasang.
 - **Kartu Balasan Konsisten**: Semua balasan me-reply kontak palsu *WhatsApp Business • Status*, teks biasa tampil sebagai kartu link-preview (gambar acak dari `config/reply/`), dan semua pesan keluar ditandai **diteruskan dari channel**.
-- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 58 plugin siap pakai untuk AI, downloader, search, stalker, wiki, dan tools.
+- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 100 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
 - **Alur Lagu 3 Langkah**: `.play <judul>` → pilih lagu dari list → lirik dengan link preview → lagunya (MP3).
 - **Stiker 1:1**: Gambar, video, GIF, atau stiker jadi stiker persegi dengan crop tengah (`.s fit` tanpa crop).
 - **Limit, Level & EXP**: Limit harian per pengguna, notifikasi naik level otomatis, dan akses premium.
@@ -71,7 +71,14 @@
 │   ├── serialize.js          # Pesan mentah → ctx
 │   ├── songs.js              # Cache hasil .play untuk .ytplay
 │   ├── sticker.js            # Media → stiker
-│   ├── upload.js             # Unggah gambar ke cdn.zavedya.id → link
+│   ├── targets.js            # Target @mention / reply / nomor + pencocokan anggota grup
+│   ├── access.js             # Aturan akses command (dipakai handler & AutoAI)
+│   ├── cards.js              # Render kartu welcome / goodbye / level-up (ffmpeg + font Poppins)
+│   ├── media.js              # audio → video untuk status grup
+│   ├── vision.js             # AI membaca gambar / video (frame) + fallback antar-model
+│   ├── autoai.js             # AutoAI: karakter Tsukiyuki Miyako, riwayat, pemicu grup
+│   ├── http.js               # fetch aman untuk .get/.post (blokir alamat lokal/privat, batas ukuran)
+│   ├── upload.js             # Unggah file ke cdn.zavedya.id → link (uploadFile / uploadImage)
 │   └── utils.js              # jid, waktu, teks, media, cache, http
 └── plugins/                  # Seluruh command (hot-reload)
     ├── general/              # menu, ping, profil, afk, owner, donate
@@ -80,9 +87,10 @@
     ├── search/               # pinterest, konachan, dafont, dramabox, gnews, lirik, … (8)
     ├── stalker/              # githubstalk, tiktokstalk, youtubestalk, … (5)
     ├── wiki/                 # hok, wuwa (2)
-    ├── tools/                # removebg, converter, tempmail (3)
+    ├── tools/                # removebg, converter, tempmail, tourl, cekidch, get/post/put/patch/delete/head (11)
+    ├── group/                # tagall, hidetag, add, kick, promote, demote, set, on/off, swgc, … (16)
     ├── maker/                # sticker
-    └── owner/                # eval, exec, restart, setmode
+    └── owner/                # eval, exec, restart, setmode, plugin manager, akses, join/leave (18)
 ```
 
 Import antar-modul memakai alias, contoh `import { db } from "#lib/database"`.
@@ -405,7 +413,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 - Header `User-Agent` dikirim otomatis (wajib untuk API ini), dengan batas waktu dari `config.api.timeout`.
 - HTTP gagal atau `status` bukan `success` melempar `ApiError` — handler menampilkannya sebagai pesan ❌ dan mengembalikan limit.
 - `lib/extract.js` berisi pembantu membaca respons di plugin (`pickText`, `listOf`, `collectMedia`, `profileLines`, dll).
-- `lib/upload.js` mengunggah gambar WhatsApp ke `https://cdn.zavedya.id/upload` agar API yang butuh `imageUrl` (removebg, nanobanana, converter) bisa dipakai dari gambar.
+- `lib/upload.js` mengunggah gambar / video / audio / dokumen WhatsApp ke `https://cdn.zavedya.id/upload` agar API yang butuh `imageUrl` (removebg, nanobanana, converter) bisa dipakai dari gambar.
 
 > API Zavedya membatasi permintaan berulang dari IP + User-Agent yang sama (cooldown 10 menit). Hindari memanggil endpoint yang tidak perlu dari satu command.
 
@@ -442,11 +450,13 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | :--- | :--- |
 | **general** | `.menu`, `.ping`, `.profil`, `.afk`, `.owner`, `.donasi` |
 | **ai** | `.gemini`, `.claude`, `.gpt`, `.deepseek`, `.glm`, `.kimi`, `.qwen`, `.minimax`, `.hunyuan`, `.stepfun`, `.sonus`, `.agnes`, `.coding`, `.free`, `.aimodels`, `.flux` (gambar), `.nanobanana` (edit gambar) |
-| **downloader** | `.play` (list lagu → lirik → audio), `.ytmp3`, `.ytmp4`, `.tiktok`, `.dailymotion`, `.likee`, `.rednote`, `.pindl`, `.soundcloud`, `.spotify`, `.mediafire`, `.terabox` |
+| **downloader** | `.play` (list lagu → lirik → audio), `.ytmp3`, `.ytmp4`, `.tiktok` (`.tt`: tanpa watermark + caption lengkap + musik MP3), `.dailymotion`, `.likee`, `.rednote`, `.pindl`, `.soundcloud`, `.spotify`, `.mediafire`, `.terabox` |
 | **search** | `.pinterest`, `.konachan`, `.dafont`, `.dramabox`, `.gnews`, `.scsearch`, `.yts`, `.lirik` |
 | **stalker** | `.githubstalk`, `.tiktokstalk`, `.youtubestalk`, `.instagramstalk`, `.twitterstalk` |
 | **wiki** | `.hok` (Honor of Kings), `.wuwa` (Wuthering Waves) |
-| **tools** | `.removebg`, `.converter`, `.tempmail` |
+| **tools** | `.removebg`, `.converter`, `.tempmail`, `.tourl` (unggah media / link file ke CDN → link), `.cekidch` (ID & detail lengkap channel), `.get` `.post` `.put` `.patch` `.delete` `.head` (premium) |
+| **group** | `.tagall`, `.hidetag`, `.add`, `.kick` (`.dor`), `.promote`, `.demote`, `.open`, `.close`, `.linkgc`, `.revoke`, `.infogc`, `.listadmin`, `.set`, `.on` / `.off`, `.swgc` |
+| **ai** (tambahan) | AutoAI Miyako (balas otomatis), `.resetai` |
 | **maker** | `.s` / `.stiker` (1:1; `.s fit` tanpa crop) |
 
 Contoh:
@@ -465,23 +475,97 @@ Contoh:
 
 ## 👑 Perintah Owner
 
-Khusus nomor di `ownerNumbers` (`access: { owner: true }`):
+Khusus owner (`ownerNumbers` di config.json **atau** yang ditambah lewat `.addowner`):
 
 ```text
-• .setmode <self|public>
-> Ubah mode bot: self (hanya owner) atau public
+• .setmode <self|public>        • .restart
+• .eval <kode> (.ev, >)         • .exec <perintah> (.sh, $)
 
-• .restart
-> Simpan database lalu restart bot (otomatis bila dijalankan lewat PM2)
+Plugin (langsung aktif, hot-reload)
+• .addplugin <nama|kategori/nama> (.sf, .saveplugin)
+> Simpan plugin baru ATAU perbarui yang sudah ada. Kode dari reply teks,
+> file .js yang dikirim, atau ditulis setelah nama. Sintaks dicek dulu; kalau gagal
+> dimuat, otomatis kembali ke versi lama. Cadangan: database/plugin-backup/
+• .getplugin <nama> (.gp)       • .delplugin <nama> (.dp)       • .listplugin [kategori]
 
-• .eval <kode>   (alias: .ev, >)
-> Jalankan kode JavaScript di dalam proses bot
+Akses
+• .addowner / .delowner / .listowner
+• .addprem <target> [hari|perm] / .delprem / .listprem   (default 30 hari)
+• .ban / .unban <target>
+> Target: @mention, reply pesan, atau nomor (62812… / 0812…)
 
-• .exec <perintah>   (alias: .sh, $)
-> Jalankan perintah shell di server
+Grup
+• .join <link grup>             • .leave
+
+API
+• .apitest [kategori|all]       → uji semua route api.zavedya.id (✅ hidup • ⚠️ menolak contoh input • ❌ mati)
+• .apitest /path k=v …          → uji satu route dengan input sendiri (tambah "post" di depan untuk POST)
 ```
 
-> ⚠️ `.eval` dan `.exec` memberi kendali penuh atas server. Pastikan `ownerNumbers` hanya berisi nomor yang kamu percaya.
+### Pengaturan: `.set` dan `.on` / `.off`
+
+Dua command ini punya dua "lingkup": **group** (admin grup, di dalam grup) dan **owner** (khusus owner).
+
+```text
+.set group name <teks>            .set owner name <teks>      (nama profil bot)
+.set group desc <teks|->          .set owner bio <teks>
+.set group pp (kirim/reply gambar) .set owner pp (kirim/reply gambar)
+.set group welcome <teks|reset>   .set owner mode <self|public>
+.set group goodbye <teks|reset>   .set owner persona <teks|reset>   (karakter AutoAI)
+(variabel: @user @subject @count @desc @author)   .set owner aimodel <gemini|gpt|claude|…>
+Singkatan: .setbio  .setwelcome  .setgoodbye  .setname  .setdesc  (.set bio … juga jalan untuk owner)
+.set group chat <admin|all>       .set group edit <admin|all>
+.set group add <admin|all>        .set group approval <on|off>
+.set group ephemeral <off|24h|7d|90d>
+
+.on / .off                        → daftar fitur + status
+.on welcome | goodbye | adminnotif | antilink | delete   → fitur grup (admin grup)
+                                  (adminnotif = notif promote & demote)
+.on autoai                        → AutoAI di grup ini (khusus owner)
+.on bot                           → bot aktif/mati di satu grup (owner)
+.on owner selfmode | autoai | anticall | statusreact | cmdsuggest | levelup   → fitur bot (owner)
+```
+
+Pengaturan `.on owner …` tersimpan di `database/settings.json` dan dipakai lagi setelah restart.
+
+### AutoAI (Tsukiyuki Miyako)
+
+Balasan otomatis tanpa command, dengan karakter Miyako (Blue Archive); **owner dipanggil "Sensei"**.
+- Chat pribadi: `.on owner autoai` (membalas semua teks).
+- Grup: `.on autoai` di grup itu (khusus owner). Bot membalas bila di-mention, pesannya di-reply, atau namanya ("Miyako") disebut.
+- Ganti karakter: `.set owner persona <teks>` (`reset` untuk kembali ke Miyako). Ganti AI: `.set owner aimodel <nama>`.
+- Ada jeda 5 detik per pengguna (owner bebas) dan ingatan 6 pesan terakhir per chat (`.resetai` untuk menghapus).
+- **Membaca gambar & video**: kirim / reply gambar atau video ke Miyako (di grup sebutkan namanya di caption). Video dibaca lewat satu cuplikan frame (butuh ffmpeg).
+- **Menjalankan perintah lewat obrolan** (khusus yang berhak): *"Miyako, tutup grup ini"* → `.close`. Admin grup dan owner bisa memicu perintah grup (`open close tagall hidetag linkgc revoke infogc listadmin kick promote demote add on off set`); **hanya owner** yang bisa memicu perintah owner (`listowner listprem addprem delprem ban unban apitest listplugin join leave`). Hak akses dicek ulang seperti command biasa (admin / bot-admin), target `kick/promote/demote` harus dari mention atau reply asli, dan `eval exec restart addplugin delplugin addowner delowner` **tidak pernah** bisa dipicu lewat AutoAI. Anggota biasa tidak mendapat tindakan apa pun.
+
+### AI membaca gambar & video
+
+Semua command AI (`.gemini .gpt .claude .deepseek …`) menerima gambar / video: kirim atau reply media dengan command-nya (teks boleh kosong → "jelaskan isi gambar"). Gambar diunggah ke `cdn.zavedya.id` lalu dikirim ke API sebagai `imageUrl`; video diambil satu frame-nya dulu. Bila model pilihan tidak bisa membaca gambar (error atau menjawab `[TANPA_GAMBAR]`), bot otomatis mencoba model lain (`gemini → gpt → claude → qwen → kimi`, maks 3 percobaan) dan memberi catatan di akhir jawaban. Ubah urutan / nama parameter di `lib/vision.js` (`VISION_CHAIN`, `VISION_PARAM`). Uji manual: `.apitest /ai/gemini prompt=apa imageUrl=https://…`.
+
+### Kartu gambar (welcome • goodbye • level-up)
+
+Notifikasi anggota masuk / keluar dan level-up tampil sebagai **link preview besar** berisi kartu bergambar (foto profil, nama, nama grup, jumlah anggota; level-up memakai bar progres EXP). Kartu dirender dengan ffmpeg (`drawtext` + `overlay`) memakai font Poppins — tanpa library tambahan. Bila render gagal, bot jatuh kembali ke foto profil + teks atau teks saja.
+- Aset: `config/cards/*-bg.png` (latar tanpa teks), `config/fonts/` (Poppins, lisensi OFL). Tata letak ada di `lib/cards.js`.
+- Ganti desain: siapkan 3 template baru (teks contoh seperti di template aslinya), sesuaikan koordinat di `tools/build-card-assets.py` dan `lib/cards.js`, lalu jalankan `python3 tools/build-card-assets.py welcome.png goodbye.png levelup.png` (butuh `opencv-python numpy pillow fonttools`).
+- Nama pengguna yang berisi emoji / aksara non-Latin disaring agar tidak tampil sebagai kotak.
+
+### Notifikasi grup
+
+`.on welcome` (anggota masuk, dengan foto profil bila ada), `.on goodbye` (keluar / dikeluarkan), `.on adminnotif` (promote / demote).
+Teks kustom: `.set group welcome …` dan `.set group goodbye …`. Notifikasi buka/tutup grup muncul sekali saja (balasan command-nya).
+
+### `.get` / `.post` (HTTP ke website)
+
+Premium & owner. `.get <url> [k=v …]` otomatis mengenali **JSON** (dirapikan; panjang → file), **gambar**, **video**, **audio**, HTML (ringkasan), dan file lain (dikirim sebagai dokumen).
+`.post|.put|.patch <url> <body>` (JSON, `k=v k2=v2`, atau teks), `.delete`, `.head`. Opsi: `-H "Nama: nilai"`, `-f` (paksa file), `-t` (paksa teks), `-i` (tampilkan header).
+Aman: hanya alamat publik (localhost, jaringan privat, dan metadata cloud diblokir, termasuk lewat redirect), maks 50 MB, timeout 30 detik.
+
+### Status grup (`.swgc`)
+
+Admin grup dan owner bisa memposting **status grup** lewat opsi `groupStatus` @zavedyaid/baileys:
+`.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio otomatis dibungkus jadi **video** (gambar latar + suara, maks 60 detik) karena WhatsApp tidak bisa menampilkan file audio mentah sebagai status (muncul pesan "update WhatsApp").
+
+> ⚠️ `.eval`, `.exec`, dan `.addplugin` memberi kendali penuh atas server. Hanya jadikan owner (di `ownerNumbers` maupun lewat `.addowner`) orang yang benar-benar kamu percaya.
 
 ---
 
@@ -500,5 +584,7 @@ Khusus nomor di `ownerNumbers` (`access: { owner: true }`):
 - **RullzFuqi** — Base Dari Bot Ini [GitHub](https://github.com/RullzFuqi)
 - **[zavedyaid/baileys](https://github.com/ZavedyaID/baileys)** — Sebagai connecting semuanya.
 - **ZavedyaApi's** — Penyedia Api. [Website](https://api.zavedya.id)
+- Rantai kredit Baileys (sesuai README `@zavedyaid/baileys`): **WhiskeySockets/Baileys** (library asli), **Lia Wynn (itsliaaa)** (enhanced fork), serta purpshell, jlucaso1, adiwajshing, dan WPP Connect (wa-proto). Ketik `.tqto` di bot untuk ucapan terima kasih lengkap.
+- Font kartu: **Poppins** © The Poppins Project Authors, lisensi [SIL OFL 1.1](https://openfontlicense.org) (`config/fonts/`).
 
 Project ini dilisensikan di bawah [MIT License (Modified)](./LICENSE) © ZavedyaID — **tidak boleh dijual atau dipakai untuk tujuan komersial tanpa izin tertulis dari pemegang hak cipta.**

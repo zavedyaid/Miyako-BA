@@ -1,0 +1,7 @@
+Poppins (Poppins-Bold.ttf, Poppins-Medium.ttf)
+Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+
+Licensed under the SIL Open Font License, Version 1.1.
+Salinan lisensi dan FAQ: https://openfontlicense.org  (https://scripts.sil.org/OFL)
+
+Font ini dibundel apa adanya (tidak dimodifikasi) untuk merender kartu welcome / goodbye / level-up (lib/cards.js).

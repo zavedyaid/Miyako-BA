@@ -11,9 +11,28 @@ import { definePlugin } from "#lib/plugins";
 const GROUP_FEATURES = {
   welcome: {
     aliases: ["sambutan"],
-    help: "Sambutan anggota masuk / keluar",
+    help: "Sambutan anggota masuk (teks: .set group welcome)",
     get: (chat) => chat.welcome,
     set: (chat, on) => (chat.welcome = on),
+  },
+  goodbye: {
+    aliases: ["bye", "perpisahan"],
+    help: "Pesan anggota keluar / dikeluarkan (teks: .set group goodbye)",
+    get: (chat) => chat.goodbye,
+    set: (chat, on) => (chat.goodbye = on),
+  },
+  adminnotif: {
+    aliases: ["promote", "demote", "notifadmin", "notif"],
+    help: "Notif saat ada yang dijadikan / dicabut admin",
+    get: (chat) => chat.adminNotif,
+    set: (chat, on) => (chat.adminNotif = on),
+  },
+  autoai: {
+    aliases: ["ai"],
+    help: "AutoAI Miyako membalas otomatis di grup ini (khusus owner)",
+    ownerOnly: true,
+    get: (chat) => chat.autoAi,
+    set: (chat, on) => (chat.autoAi = on),
   },
   antilink: {
     aliases: ["anti-link"],
@@ -48,6 +67,15 @@ const OWNER_FEATURES = {
       db.save("settings");
     },
   },
+  autoai: {
+    aliases: ["ai"],
+    help: "AutoAI Miyako membalas otomatis di chat pribadi",
+    get: ({ db }) => Boolean(db.settings.autoAi),
+    set: ({ db }, on) => {
+      db.settings.autoAi = on;
+      db.save("settings");
+    },
+  },
   anticall: {
     aliases: [],
     help: "Tolak panggilan masuk",
@@ -55,7 +83,7 @@ const OWNER_FEATURES = {
   },
   statusreact: {
     aliases: ["reactstatus"],
-    help: "Reaksi otomatis ke status",
+    help: "Lihat & beri reaksi otomatis ke status",
     key: "statusReact",
   },
   cmdsuggest: {

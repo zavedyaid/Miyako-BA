@@ -12,7 +12,8 @@ import { config } from "#lib/config";
 import { db } from "#lib/database";
 import { groups } from "#lib/groups";
 import { logger } from "#lib/logger";
-import { messageCache, numberOf, truncate } from "#lib/utils";
+import { fetchAvatar, renderCard } from "#lib/cards";
+import { bare, messageCache, numberOf, truncate } from "#lib/utils";
 import { handleMessages } from "./handler.js";
 
 const REVOKE = proto?.WebMessageInfo?.StubType?.REVOKE ?? 1;
@@ -25,29 +26,88 @@ const guard = (name, handler) => async (...args) => {
   }
 };
 
-const onParticipants = (sock) => async ({ id, action, participants }) => {
+/*
+ * Notifikasi anggota grup (masing-masing punya saklar sendiri, atur lewat .on):
+ *   welcome    → anggota masuk          goodbye → anggota keluar / dikeluarkan
+ *   adminNotif → promote / demote
+ * Teks kustom: .set group welcome|goodbye <teks>  (variabel @user @subject @count @desc @author)
+ */
+const DEFAULT_TEXT = {
+  add: "👋 Selamat datang @user di *@subject*!\n👥 Anggota: @count",
+  leave: "👋 Sampai jumpa @user!\n👥 Sisa anggota: @count",
+  kicked: "🚪 @user dikeluarkan oleh @author.\n👥 Sisa anggota: @count",
+  promote: "⚡ @user sekarang *Admin* (oleh @author).",
+  demote: "📉 @user bukan *Admin* lagi (oleh @author).",
+};
+
+const displayName = (jid, rawId) => db.users[jid]?.name ?? db.users[rawId]?.name ?? numberOf(jid);
+
+const renderMemberCard = async (sock, kind, { jid, rawId, meta }) => {
+  try {
+    const avatar = await fetchAvatar(sock, jid);
+    return await renderCard(kind, { name: displayName(jid, rawId), group: meta?.subject ?? "Grup", count: meta?.participants?.length ?? 0, avatar });
+  } catch (err) {
+    logger.warn(`Kartu ${kind} gagal dirender: ${err.message}`);
+    return null;
+  }
+};
+
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
+
+const onParticipants = (sock) => async ({ id, author, authorPn, action, participants }) => {
   groups.forget(id);
   const chat = db.groups[id];
-  if (!chat?.welcome) return;
+  if (!chat) return;
+
+  const enabled = { add: chat.welcome, remove: chat.goodbye, promote: chat.adminNotif, demote: chat.adminNotif }[action];
+  if (!enabled) return;
 
   const meta = await groups.get(sock, id);
+  const by = authorPn ?? author;
 
   for (const entry of participants) {
     const jid = typeof entry === "string" ? entry : (entry.phoneNumber ?? entry.id);
-    const fill = (template) =>
-      template
-        .replaceAll("@user", `@${numberOf(jid)}`)
-        .replaceAll("@subject", meta?.subject ?? "")
-        .replaceAll("@count", String(meta?.participants?.length ?? 0));
+    const rawId = typeof entry === "string" ? entry : entry.id;
+    const selfLeft = action === "remove" && (!by || [rawId, jid].some((x) => x && by && bare(x) === bare(by)));
 
-    const text = {
-      add: fill(chat.sWelcome || "Selamat datang @user! 👋"),
-      remove: fill(chat.sBye || "Sampai jumpa @user! 👋"),
-      promote: fill("⚡ @user sekarang *Admin*!"),
-      demote: fill("📉 @user bukan *Admin* lagi."),
-    }[action];
+    const kind = action === "remove" ? (selfLeft ? "leave" : "kicked") : action;
+    const custom = { add: chat.sWelcome, leave: chat.sBye, kicked: chat.sBye }[kind];
+    const template = custom || DEFAULT_TEXT[kind];
 
-    if (text) sock.sendMessage(id, { text, mentions: [jid] }).catch(() => {});
+    const text = template
+      .replaceAll("@user", `@${numberOf(jid)}`)
+      .replaceAll("@subject", meta?.subject ?? "")
+      .replaceAll("@count", String(meta?.participants?.length ?? 0))
+      .replaceAll("@desc", meta?.desc ?? "")
+      .replaceAll("@author", by ? `@${numberOf(by)}` : "admin");
+    const mentions = [jid, by].filter(Boolean);
+
+    // Welcome / goodbye: kartu gambar (link preview besar) berisi foto profil, nama, grup, dan jumlah anggota.
+    // Gagal merender → foto profil + teks, lalu teks saja.
+    let sent = false;
+    if (action === "add" || action === "remove") {
+      const card = await renderMemberCard(sock, action === "add" ? "welcome" : "goodbye", { jid, rawId, meta });
+      if (card) {
+        sent = await sock
+          .sendMessage(id, {
+            text,
+            mentions,
+            externalAdReply: {
+              title: action === "add" ? "👋 Selamat datang!" : "👋 Sampai jumpa!",
+              body: meta?.subject ?? config.name,
+              thumbnail: card,
+              largeThumbnail: true,
+              url: config.social?.github,
+            },
+          })
+          .then(() => true, () => false);
+      }
+      if (!sent) {
+        const url = await withTimeout(sock.profilePictureUrl(jid, "image").catch(() => null), 5000);
+        if (url) sent = await sock.sendMessage(id, { image: { url }, caption: text, mentions }).then(() => true, () => false);
+      }
+    }
+    if (!sent) await sock.sendMessage(id, { text, mentions }).catch((err) => logger.warn(`notif ${action}: ${err.message}`));
   }
 };
 
@@ -56,6 +116,9 @@ const onGroupsUpdate = (sock) => (updates) => {
     if (!update.id) continue;
     groups.patch(update.id, update);
     if (!db.groups[update.id]) continue;
+
+    // Perubahan yang dibuat bot sendiri (.open/.close/.set group chat) sudah dibalas oleh command-nya.
+    if (update.announce !== undefined && groups.isSilenced(update.id)) continue;
 
     if (update.announce === true) {
       sock.sendMessage(update.id, { text: "🔒 Grup *ditutup* — hanya admin yang bisa mengirim pesan." }).catch(() => {});

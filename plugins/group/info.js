@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { groups } from "#lib/groups";
 import { mentionJid } from "#lib/targets";
 import { numberOf } from "#lib/utils";
 
@@ -14,6 +15,7 @@ const open = definePlugin({
   description: "Buka grup — semua anggota bisa chat",
   access: { group: true, admin: true, botAdmin: true },
   async run({ sock, ctx }) {
+    groups.silence(ctx.chatId); // cegah pengumuman dobel dari event groups.update
     await sock.groupSettingUpdate(ctx.chatId, "not_announcement");
     await ctx.reply("🔓 Grup *dibuka* — semua anggota bisa mengirim pesan.");
   },
@@ -26,6 +28,7 @@ const close = definePlugin({
   description: "Tutup grup — hanya admin yang bisa chat",
   access: { group: true, admin: true, botAdmin: true },
   async run({ sock, ctx }) {
+    groups.silence(ctx.chatId);
     await sock.groupSettingUpdate(ctx.chatId, "announcement");
     await ctx.reply("🔒 Grup *ditutup* — hanya admin yang bisa mengirim pesan.");
   },

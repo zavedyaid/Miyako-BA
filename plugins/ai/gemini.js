@@ -1,8 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { truncate } from "#lib/utils";
-
-const MODEL = "gemini-3.6-flash";
+import { DEFAULT_VISION_PROMPT, askAI, attachVisual, noteOf } from "#lib/vision";
 
 // Markdown Gemini → format WhatsApp: **tebal** → *tebal*, # Judul → *Judul*, "* " → "• ".
 const toWhatsApp = (text) =>
@@ -18,26 +17,24 @@ export default definePlugin({
   aliases: ["gem"],
   category: "ai",
   description: "Tanya Google Gemini",
-  usage: "gemini <pertanyaan> (atau reply teks)",
+  usage: "gemini <pertanyaan> (atau reply teks, gambar, atau video)",
   limit: 1,
   async run({ ctx }) {
-    const prompt = ctx.argsStr || ctx.quotedText;
+    const visual = await attachVisual(ctx);
+    const prompt = ctx.argsStr || ctx.quotedText || (visual ? DEFAULT_VISION_PROMPT : "");
     if (!prompt) {
-      return ctx.reply(`❌ Masukkan pertanyaan.\nContoh: *${ctx.prefix}gemini jelaskan cara kerja AI*`, {
+      return ctx.reply(`❌ Masukkan pertanyaan (atau kirim / reply gambar atau video).\nContoh: *${ctx.prefix}gemini jelaskan cara kerja AI*`, {
         preview: { title: "Gemini", body: "Tanya apa saja" },
       });
     }
 
     ctx.react("⏳");
     try {
-      const data = await api.get("/ai/gemini", {
-        prompt,
-        model: MODEL,
-      });
+      const data = await askAI("gemini", prompt, visual);
       const answer = toWhatsApp(String(data.text ?? ""));
       if (!answer) throw new ApiError("Jawaban kosong dari API.");
 
-      await ctx.reply(truncate(answer, 3800), { preview: { title: "Gemini", body: data.model ?? "AI" } });
+      await ctx.reply(truncate(answer + noteOf(data), 3800), { preview: { title: "Gemini", body: data.model ?? "AI" } });
       ctx.react("✅");
     } catch (err) {
       ctx.react("❌");

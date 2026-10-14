@@ -11,11 +11,12 @@ import { generateMessageIDV2 } from "#lib/baileys";
 import { config, isOwnerIdentity } from "#lib/config";
 import { db } from "#lib/database";
 import { groups, inspectGroup } from "#lib/groups";
+import { authorize } from "#lib/access";
 import { announceLevelUp } from "#lib/levelup";
 import { logger } from "#lib/logger";
 import { registry } from "#lib/plugins";
 import { buildContext } from "#lib/serialize";
-import { closest, duration, gainExp, messageCache, numberOf, pick, randomInt, slugify, toNumber } from "#lib/utils";
+import { bare, closest, duration, gainExp, messageCache, numberOf, pick, randomInt, slugify, toNumber } from "#lib/utils";
 
 const STATUS_REACTIONS = ["😍", "🔥", "💯", "🤩", "😭", "👏", "❤️"];
 const LINK = /(https?:\/\/\S+|chat\.whatsapp\.com\/\S+)/i;
@@ -23,14 +24,6 @@ const MAX_WARN = 3;
 const EXP_COOLDOWN = 10_000;
 const lastExp = new Map();
 
-const DENIED = {
-  owner: "❌ Perintah ini khusus *Owner*.",
-  premium: "💎 Fitur ini khusus *Premium*.",
-  group: "👥 Perintah ini hanya bisa dipakai di *grup*.",
-  private: "👤 Perintah ini hanya bisa dipakai di *chat pribadi*.",
-  admin: "🛡️ Perintah ini khusus *admin grup*.",
-  botAdmin: "🤖 Jadikan bot sebagai *admin grup* dulu.",
-};
 
 const premiumActive = (user) => {
   if (!user.premium?.on) return false;
@@ -57,11 +50,7 @@ const gate = (env, next) => {
   const { sock, ctx, role, user, chat } = env;
 
   if (ctx.isStatus) {
-    if (config.features?.statusReact && !ctx.fromMe && ctx.raw.key.participant) {
-      sock
-        .sendMessage(ctx.chatId, { react: { key: ctx.raw.key, text: pick(STATUS_REACTIONS) } }, { statusJid: [ctx.raw.key.participant] })
-        .catch(() => {});
-    }
+    if (config.features?.statusReact && !ctx.fromMe && ctx.raw.key.participant) reactStatus(sock, ctx);
     return;
   }
 
@@ -72,6 +61,19 @@ const gate = (env, next) => {
   if (!role.owner && (chat?.isBanned || user.banned)) return;
 
   return next();
+};
+
+// Lihat status lalu beri reaksi. WhatsApp hanya mengirim reaksi status ke JID yang disebut di statusJidList
+// (pemilik status + akun bot sendiri); opsi lama "statusJid" tidak dikenali sehingga reaksi tidak pernah terkirim.
+const reactStatus = async (sock, ctx) => {
+  const key = ctx.raw.key;
+  const recipients = [...new Set([ctx.senderPn, ctx.senderLid, key.participant, key.participantAlt, sock.user?.id, sock.user?.lid].filter(Boolean).map(bare))];
+  try {
+    await sock.readMessages([key]);
+    await sock.sendMessage("status@broadcast", { react: { key, text: pick(STATUS_REACTIONS) } }, { statusJidList: recipients });
+  } catch (err) {
+    logger.warn(`Reaksi status gagal: ${err.message}`);
+  }
 };
 
 const exp = (env, next) => {
@@ -150,22 +152,6 @@ const autoreply = async (env, next) => {
   }
 };
 
-const authorize = async (plugin, env) => {
-  const { ctx, role } = env;
-  const rule = plugin.access;
-
-  if (rule.owner && !role.owner) return DENIED.owner;
-  if (rule.premium && !role.premium) return DENIED.premium;
-  if (rule.group && !ctx.isGroup) return DENIED.group;
-  if (rule.private && ctx.isGroup) return DENIED.private;
-
-  if (ctx.isGroup && (rule.admin || rule.botAdmin)) {
-    const { isAdmin, isBotAdmin } = await env.group();
-    if (rule.botAdmin && !isBotAdmin) return DENIED.botAdmin;
-    if (rule.admin && !isAdmin && !role.owner) return DENIED.admin;
-  }
-  return null;
-};
 
 const commands = async (env, next) => {
   const { ctx, role, user } = env;
