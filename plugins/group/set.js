@@ -208,6 +208,32 @@ const OWNER = {
       return `✅ AutoAI sekarang memakai *${name}*.`;
     },
   },
+  autoread: {
+    aliases: ["autobaca", "read"],
+    help: "autoread <all|group|private|off> — tandai pesan masuk sudah dibaca",
+    async run({ db, config }, value) {
+      const choice = { all: "all", semua: "all", on: "all", group: "group", grup: "group", private: "private", pribadi: "private", off: false, mati: false }[value.toLowerCase()];
+      if (choice === undefined) {
+        const now = config.features?.autoRead;
+        return `👁️ Autoread saat ini: *${now || "off"}*\nPilihan: all, group, private, off`;
+      }
+      (config.features ??= {}).autoRead = choice;
+      (db.settings.features ??= {}).autoRead = choice;
+      db.save("settings");
+      return choice ? `✅ Autoread aktif: *${choice === "all" ? "grup + pribadi" : choice === "group" ? "grup saja" : "pribadi saja"}*` : "✅ Autoread dimatikan.";
+    },
+  },
+  cardstyle: {
+    aliases: ["gayakartu", "card"],
+    help: "cardstyle <preview|image> — kartu welcome/goodbye/level-up sebagai link preview atau gambar biasa",
+    async run({ db }, value) {
+      const style = value.toLowerCase();
+      if (!["preview", "image"].includes(style)) return `🖼️ Gaya kartu saat ini: *${db.settings.cardStyle ?? "preview"}*\nPilihan: preview, image`;
+      db.settings.cardStyle = style;
+      db.save("settings");
+      return `✅ Kartu sekarang dikirim sebagai *${style === "preview" ? "link preview besar" : "gambar biasa"}*.`;
+    },
+  },
   mode: {
     aliases: [],
     help: "mode <self|public> — self = hanya owner yang bisa pakai bot",

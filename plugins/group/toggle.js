@@ -76,6 +76,17 @@ const OWNER_FEATURES = {
       db.save("settings");
     },
   },
+  autoread: {
+    aliases: ["read", "autobaca"],
+    help: "Tandai pesan masuk sudah dibaca (grup & pribadi). Atur cakupan: .set owner autoread <all|group|private>",
+    get: ({ config }) => Boolean(config.features?.autoRead),
+    set: ({ db, config }, on) => {
+      const value = on ? (config.features?.autoRead || "all") : false;
+      (config.features ??= {}).autoRead = value;
+      (db.settings.features ??= {}).autoRead = value;
+      db.save("settings");
+    },
+  },
   anticall: {
     aliases: [],
     help: "Tolak panggilan masuk",

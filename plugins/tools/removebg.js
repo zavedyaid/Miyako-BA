@@ -54,7 +54,7 @@ export default definePlugin({
       ctx.react("❌");
       // "Model tidak tersedia" datang dari server API, bukan dari gambar atau bot.
       if (err instanceof ApiError && /model|unavailable|tidak tersedia/i.test(err.message)) {
-        throw new ApiError("Layanan hapus background sedang tidak tersedia di server API. Coba lagi nanti (owner bisa cek dengan .apitest tools).", { status: err.status, data: err.data });
+        throw new ApiError("Layanan hapus background sedang tidak tersedia di server API. Coba lagi nanti.", { status: err.status, data: err.data });
       }
       throw err; // handler membalas pesan error & mengembalikan limit
     }

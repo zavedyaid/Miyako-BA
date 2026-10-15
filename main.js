@@ -22,6 +22,7 @@ import pino from "pino";
 import qrcode from "qrcode-terminal";
 import { attachEvents } from "./events.js";
 import { patchChannel } from "#lib/channel";
+import { checkCards } from "#lib/cards";
 import { config } from "#lib/config";
 import { db } from "#lib/database";
 import { groups } from "#lib/groups";
@@ -177,6 +178,7 @@ logger.banner({ name: config.name, version: config.version, node: process.versio
 db.load();
 Object.assign((config.features ??= {}), db.settings.features); // toggle fitur dari .on owner
 await registry.loadAll();
+checkCards().then((r) => !r.ok && logger.warn(`Kartu welcome/goodbye/level-up dinonaktifkan: ${r.reason}`)); // hanya peringatan, bot tetap jalan
 registry.watch();
 startScheduler();
 await connect();

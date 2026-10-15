@@ -36,7 +36,7 @@
 - **Pesan Interaktif Bawaan Fork**: Gambar header, baris promo, tombol URL / salin / balas cepat, serta **List Menu** bertingkat (Utama, Kategori, Support) lewat `nativeFlow` `@zavedyaid/baileys`.
 - **Menu Bertingkat**: Satu tombol *List Menu* berisi sub-list, baris balas ↩ langsung, dan daftar kategori yang dibuat otomatis dari plugin yang terpasang.
 - **Kartu Balasan Konsisten**: Semua balasan me-reply kontak palsu *WhatsApp Business • Status*, teks biasa tampil sebagai kartu link-preview (gambar acak dari `config/reply/`), dan semua pesan keluar ditandai **diteruskan dari channel**.
-- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 100 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
+- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 101 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
 - **Alur Lagu 3 Langkah**: `.play <judul>` → pilih lagu dari list → lirik dengan link preview → lagunya (MP3).
 - **Stiker 1:1**: Gambar, video, GIF, atau stiker jadi stiker persegi dengan crop tengah (`.s fit` tanpa crop).
 - **Limit, Level & EXP**: Limit harian per pengguna, notifikasi naik level otomatis, dan akses premium.
@@ -87,10 +87,10 @@
     ├── search/               # pinterest, konachan, dafont, dramabox, gnews, lirik, … (8)
     ├── stalker/              # githubstalk, tiktokstalk, youtubestalk, … (5)
     ├── wiki/                 # hok, wuwa (2)
-    ├── tools/                # removebg, converter, tempmail, tourl, cekidch, get/post/put/patch/delete/head (11)
+    ├── tools/                # removebg, converter, tempmail, tourl, cekidch, get/post/put/patch/delete/head, curl (12)
     ├── group/                # tagall, hidetag, add, kick, promote, demote, set, on/off, swgc, … (16)
     ├── maker/                # sticker
-    └── owner/                # eval, exec, restart, setmode, plugin manager, akses, join/leave (18)
+    └── owner/                # eval, exec, restart, setmode, plugin manager, akses, join/leave, cardtest (19)
 ```
 
 Import antar-modul memakai alias, contoh `import { db } from "#lib/database"`.
@@ -166,8 +166,7 @@ Buka dan sesuaikan berkas `config/config.json`:
     "statusReact": false,
     "cmdSuggest": true,
     "levelUpNotif": true
-  },
-  "api": { "baseUrl": "https://api.zavedya.id", "timeout": 60000 }
+  }
 }
 ```
 
@@ -410,7 +409,7 @@ const data = await api.get("/search/pinterest", { query: "aesthetic wallpaper", 
 const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JSON
 ```
 
-- Header `User-Agent` dikirim otomatis (wajib untuk API ini), dengan batas waktu dari `config.api.timeout`.
+- Header `User-Agent` dikirim otomatis (wajib untuk API ini), dengan batas waktu `API_TIMEOUT` (alamat `API_BASE` dan batas waktu diatur di bagian atas `lib/api.js`, bukan di config.json).
 - HTTP gagal atau `status` bukan `success` melempar `ApiError` — handler menampilkannya sebagai pesan ❌ dan mengembalikan limit.
 - `lib/extract.js` berisi pembantu membaca respons di plugin (`pickText`, `listOf`, `collectMedia`, `profileLines`, dll).
 - `lib/upload.js` mengunggah gambar / video / audio / dokumen WhatsApp ke `https://cdn.zavedya.id/upload` agar API yang butuh `imageUrl` (removebg, nanobanana, converter) bisa dipakai dari gambar.
@@ -439,7 +438,6 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | `promo` | Baris promo di pesan interaktif (`text`, `code`, `url`, `hours`) |
 | `social` | Link website, GitHub, dan grup |
 | `sticker` | `packname` dan `author` stiker |
-| `api` | `baseUrl` dan `timeout` router API |
 | `donate` | `catalog`, `title`, `description`, `text`, `accounts`, `links` untuk `.donasi` |
 
 ---
@@ -454,7 +452,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | **search** | `.pinterest`, `.konachan`, `.dafont`, `.dramabox`, `.gnews`, `.scsearch`, `.yts`, `.lirik` |
 | **stalker** | `.githubstalk`, `.tiktokstalk`, `.youtubestalk`, `.instagramstalk`, `.twitterstalk` |
 | **wiki** | `.hok` (Honor of Kings), `.wuwa` (Wuthering Waves) |
-| **tools** | `.removebg`, `.converter`, `.tempmail`, `.tourl` (unggah media / link file ke CDN → link), `.cekidch` (ID & detail lengkap channel), `.get` `.post` `.put` `.patch` `.delete` `.head` (premium) |
+| **tools** | `.removebg`, `.converter`, `.tempmail`, `.tourl` (unggah media / link file ke CDN → link), `.cekidch` (ID & detail lengkap channel), `.get` `.post` `.put` `.patch` `.delete` `.head` `.curl` (premium) |
 | **group** | `.tagall`, `.hidetag`, `.add`, `.kick` (`.dor`), `.promote`, `.demote`, `.open`, `.close`, `.linkgc`, `.revoke`, `.infogc`, `.listadmin`, `.set`, `.on` / `.off`, `.swgc` |
 | **ai** (tambahan) | AutoAI Miyako (balas otomatis), `.resetai` |
 | **maker** | `.s` / `.stiker` (1:1; `.s fit` tanpa crop) |
@@ -497,9 +495,6 @@ Akses
 Grup
 • .join <link grup>             • .leave
 
-API
-• .apitest [kategori|all]       → uji semua route api.zavedya.id (✅ hidup • ⚠️ menolak contoh input • ❌ mati)
-• .apitest /path k=v …          → uji satu route dengan input sendiri (tambah "post" di depan untuk POST)
 ```
 
 ### Pengaturan: `.set` dan `.on` / `.off`
@@ -511,6 +506,8 @@ Dua command ini punya dua "lingkup": **group** (admin grup, di dalam grup) dan *
 .set group desc <teks|->          .set owner bio <teks>
 .set group pp (kirim/reply gambar) .set owner pp (kirim/reply gambar)
 .set group welcome <teks|reset>   .set owner mode <self|public>
+                                  .set owner autoread <all|group|private|off>
+                                  .set owner cardstyle <preview|image>
 .set group goodbye <teks|reset>   .set owner persona <teks|reset>   (karakter AutoAI)
 (variabel: @user @subject @count @desc @author)   .set owner aimodel <gemini|gpt|claude|…>
 Singkatan: .setbio  .setwelcome  .setgoodbye  .setname  .setdesc  (.set bio … juga jalan untuk owner)
@@ -523,7 +520,7 @@ Singkatan: .setbio  .setwelcome  .setgoodbye  .setname  .setdesc  (.set bio … 
                                   (adminnotif = notif promote & demote)
 .on autoai                        → AutoAI di grup ini (khusus owner)
 .on bot                           → bot aktif/mati di satu grup (owner)
-.on owner selfmode | autoai | anticall | statusreact | cmdsuggest | levelup   → fitur bot (owner)
+.on owner selfmode | autoai | autoread | anticall | statusreact | cmdsuggest | levelup   → fitur bot (owner)
 ```
 
 Pengaturan `.on owner …` tersimpan di `database/settings.json` dan dipakai lagi setelah restart.
@@ -536,11 +533,11 @@ Balasan otomatis tanpa command, dengan karakter Miyako (Blue Archive); **owner d
 - Ganti karakter: `.set owner persona <teks>` (`reset` untuk kembali ke Miyako). Ganti AI: `.set owner aimodel <nama>`.
 - Ada jeda 5 detik per pengguna (owner bebas) dan ingatan 6 pesan terakhir per chat (`.resetai` untuk menghapus).
 - **Membaca gambar & video**: kirim / reply gambar atau video ke Miyako (di grup sebutkan namanya di caption). Video dibaca lewat satu cuplikan frame (butuh ffmpeg).
-- **Menjalankan perintah lewat obrolan** (khusus yang berhak): *"Miyako, tutup grup ini"* → `.close`. Admin grup dan owner bisa memicu perintah grup (`open close tagall hidetag linkgc revoke infogc listadmin kick promote demote add on off set`); **hanya owner** yang bisa memicu perintah owner (`listowner listprem addprem delprem ban unban apitest listplugin join leave`). Hak akses dicek ulang seperti command biasa (admin / bot-admin), target `kick/promote/demote` harus dari mention atau reply asli, dan `eval exec restart addplugin delplugin addowner delowner` **tidak pernah** bisa dipicu lewat AutoAI. Anggota biasa tidak mendapat tindakan apa pun.
+- **Menjalankan perintah lewat obrolan** (khusus yang berhak; AutoAI harus sudah aktif di chat itu). Kalimat yang jelas dikenali langsung tanpa menunggu AI (`lib/intents.js`: "tutup grup ini", "bukain gc", "tag semua …", "keluarkan @user", "jadikan admin @user", "nyalakan welcome", "ganti nama grup jadi …", "list owner", "beri premium 30 hari" …); selain itu AI yang memilih lewat penanda `[[CMD: …]]`. Kalimat berisi larangan ("jangan tutup grup") atau pertanyaan ("kenapa grup ditutup?") diabaikan. *"Miyako, tutup grup ini"* → `.close`. Admin grup dan owner bisa memicu perintah grup (`open close tagall hidetag linkgc revoke infogc listadmin kick promote demote add on off set`); **hanya owner** yang bisa memicu perintah owner (`listowner listprem addprem delprem ban unban listplugin join leave`). Hak akses dicek ulang seperti command biasa (admin / bot-admin), target `kick/promote/demote` harus dari mention atau reply asli, dan `eval exec restart addplugin delplugin addowner delowner` **tidak pernah** bisa dipicu lewat AutoAI. Anggota biasa tidak mendapat tindakan apa pun.
 
 ### AI membaca gambar & video
 
-Semua command AI (`.gemini .gpt .claude .deepseek …`) menerima gambar / video: kirim atau reply media dengan command-nya (teks boleh kosong → "jelaskan isi gambar"). Gambar diunggah ke `cdn.zavedya.id` lalu dikirim ke API sebagai `imageUrl`; video diambil satu frame-nya dulu. Bila model pilihan tidak bisa membaca gambar (error atau menjawab `[TANPA_GAMBAR]`), bot otomatis mencoba model lain (`gemini → gpt → claude → qwen → kimi`, maks 3 percobaan) dan memberi catatan di akhir jawaban. Ubah urutan / nama parameter di `lib/vision.js` (`VISION_CHAIN`, `VISION_PARAM`). Uji manual: `.apitest /ai/gemini prompt=apa imageUrl=https://…`.
+Semua command AI (`.gemini .gpt .claude .deepseek …`) menerima gambar / video: kirim atau reply media dengan command-nya (teks boleh kosong → "jelaskan isi gambar"). Gambar diunggah ke `cdn.zavedya.id` lalu dikirim ke API sebagai `imageUrl`; video diambil satu frame-nya dulu. Bila model pilihan tidak bisa membaca gambar (error atau menjawab `[TANPA_GAMBAR]`), bot otomatis mencoba model lain (`gemini → gpt → claude → qwen → kimi`, maks 3 percobaan) dan memberi catatan di akhir jawaban. Ubah urutan / nama parameter di `lib/vision.js` (`VISION_CHAIN`, `VISION_PARAM`). Uji manual: `.curl "https://api.zavedya.id/v1/ai/gemini?prompt=apa&imageUrl=https://…"`.
 
 ### Kartu gambar (welcome • goodbye • level-up)
 
@@ -560,10 +557,22 @@ Premium & owner. `.get <url> [k=v …]` otomatis mengenali **JSON** (dirapikan; 
 `.post|.put|.patch <url> <body>` (JSON, `k=v k2=v2`, atau teks), `.delete`, `.head`. Opsi: `-H "Nama: nilai"`, `-f` (paksa file), `-t` (paksa teks), `-i` (tampilkan header).
 Aman: hanya alamat publik (localhost, jaringan privat, dan metadata cloud diblokir, termasuk lewat redirect), maks 50 MB, timeout 30 detik.
 
+### `.curl`
+
+Tempel perintah curl apa adanya (awalan `curl` boleh dihilangkan), contoh: `.curl -X POST https://httpbin.org/post -H "Content-Type: application/json" -d '{"a":1}'`. Didukung: `-X -H -d/--data-raw/--data-urlencode --json -F -u -A -e -b -G -I -i -m -o`; opsi seperti `-L -s -k --compressed` diabaikan; `@file` dan proxy tidak didukung. Respons ditampilkan seperti `.get` (JSON dirapikan, gambar / video / audio dikirim sebagai media). Aturan keamanan sama dengan `.get` (alamat publik saja, maks 50 MB). Premium & owner.
+
+### Autoread
+
+`.on owner autoread` menandai semua pesan masuk (grup + pribadi) sebagai sudah dibaca. Batasi dengan `.set owner autoread group|private|all|off`. Pesan sendiri, status, dan channel dilewati.
+
+### Diagnosa kartu
+
+`.cardtest welcome|goodbye|levelup` (owner) merender kartu dengan datamu sendiri dan menampilkan alasan lengkap bila gagal (ffmpeg / filter `drawtext` / aset / pengiriman). Bot juga mencatat peringatan saat start bila ffmpeg tidak punya `drawtext`. Bila link preview besar tidak tampil di WhatsApp-mu: `.set owner cardstyle image` (kartu dikirim sebagai gambar biasa).
+
 ### Status grup (`.swgc`)
 
 Admin grup dan owner bisa memposting **status grup** lewat opsi `groupStatus` @zavedyaid/baileys:
-`.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio otomatis dibungkus jadi **video** (gambar latar + suara, maks 60 detik) karena WhatsApp tidak bisa menampilkan file audio mentah sebagai status (muncul pesan "update WhatsApp").
+`.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio dikirim **utuh (tanpa batas 60 detik)** sebagai *voice note* (OGG/Opus) — file audio biasa seperti mp3 ditolak WhatsApp sebagai status dan memunculkan pesan "update WhatsApp". Bila WhatsApp-mu tetap menolak voice note, pakai `.swgc -v` sebagai cadangan (audio dibungkus video, maks 60 detik).
 
 > ⚠️ `.eval`, `.exec`, dan `.addplugin` memberi kendali penuh atas server. Hanya jadikan owner (di `ownerNumbers` maupun lewat `.addowner`) orang yang benar-benar kamu percaya.
 

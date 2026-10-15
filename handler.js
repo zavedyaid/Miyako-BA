@@ -76,6 +76,16 @@ const reactStatus = async (sock, ctx) => {
   }
 };
 
+// Tandai pesan masuk sebagai sudah dibaca (centang biru) di grup dan / atau chat pribadi.
+// Nyalakan: .on owner autoread (semua) • .set owner autoread <all|group|private|off>
+export const autoRead = (sock, ctx, msg) => {
+  const mode = config.features?.autoRead;
+  if (!mode || ctx.fromMe || ctx.isStatus || ctx.chatId.endsWith("@newsletter")) return;
+  if (mode === "group" && !ctx.isGroup) return;
+  if (mode === "private" && ctx.isGroup) return;
+  sock.readMessages([msg.key]).catch(() => {});
+};
+
 const exp = (env, next) => {
   const { ctx, user } = env;
   const now = Date.now();
@@ -242,6 +252,7 @@ export const handleMessages = (sock) => async ({ messages, type }) => {
         group: () => (info ??= inspectGroup(env)),
       };
 
+      autoRead(sock, ctx, msg);
       await run(env);
     })().catch((err) => logger.error(`messages.upsert: ${err.stack ?? err.message}`));
   }

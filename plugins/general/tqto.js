@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { API_BASE } from "#lib/api";
 import { config } from "#lib/config";
 
 /*
@@ -14,7 +15,7 @@ export default definePlugin({
   async run({ ctx }) {
     const github = config.social?.github ?? "https://github.com/ZavedyaID";
     const website = config.social?.website ?? "https://zavedya.id";
-    const apiHost = String(config.api?.baseUrl ?? "https://api.zavedya.id").replace(/^https?:\/\//, "");
+    const apiHost = API_BASE.replace(/^https?:\/\//, "");
     const dev = config.owner ?? "ZavedyaID";
 
     const text = [

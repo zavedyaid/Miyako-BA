@@ -9,11 +9,10 @@ import { fakeQuoted, formatNumber, getBuffer, truncate } from "#lib/utils";
  * Alur 1 dari 3:  .play <judul>
  *   Pencarian memakai paket yt-search langsung (BUKAN api.zavedya.id, supaya tidak menambah endpoint di /status).
  *   → gambar (thumbnail hasil teratas) + tombol list pilih lagu.
- *   Tiap baris: judul · penulis / channel · durasi. Dipilih → .ytplay <link> (alur 2 & 3).
+ *   Tiap baris list: judul · penulis / channel · durasi · views (teks pesan hanya judul pencarian). Dipilih → .ytplay <link> (alur 2 & 3).
  */
 const LIMIT = 10;
 const ROW_TITLE_MAX = 60; // panjang judul baris list (turunkan ke 24 bila WhatsApp-mu menolak judul panjang)
-const CAPTION_MAX = 980; // batas caption gambar WhatsApp ±1024
 
 // Buang embel-embel "(Official Music Video)", "[Lyrics]" dll supaya judul lebih ringkas & lengkap.
 const clean = (text) =>
@@ -66,19 +65,11 @@ export default definePlugin({
         id: `${ctx.prefix}ytplay ${r.url}`,
       }));
 
-      // Caption = daftar lengkap (judul penuh · penulis · durasi), jaga-jaga bila baris list terpotong.
-      const header = [`🎵 *YOUTUBE PLAY*`, `🔎 ${query}`, `📋 ${results.length} hasil — pilih lagunya di bawah 👇`, ""];
-      const lines = [];
-      let length = header.join("\n").length;
-      for (const [i, r] of results.entries()) {
-        const entry = `${i + 1}. ${truncate(clean(r.title), 70)}\n   👤 ${truncate(r.author?.name ?? "-", 30)} • ⏱️ ${r.duration ?? "-"}`;
-        if (length + entry.length + 1 > CAPTION_MAX) break;
-        lines.push(entry);
-        length += entry.length + 1;
-      }
+      // Caption hanya judul pencarian; daftar lagu ada di tombol list (tidak diulang di teks).
+      const text = [`🎵 *YOUTUBE PLAY*`, `🔎 ${query}`, `📋 ${results.length} hasil — pilih lagunya di bawah 👇`].join("\n");
 
       await sendInteractive(sock, ctx.chatId, {
-        text: [...header, ...lines].join("\n"),
+        text,
         image,
         buttons: [{ type: "list", text: "Pilih Lagu", sections: [{ title: "Hasil pencarian", rows }] }],
         mentions: [ctx.senderId],

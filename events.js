@@ -12,7 +12,7 @@ import { config } from "#lib/config";
 import { db } from "#lib/database";
 import { groups } from "#lib/groups";
 import { logger } from "#lib/logger";
-import { fetchAvatar, renderCard } from "#lib/cards";
+import { cardPayload, fetchAvatar, renderCard } from "#lib/cards";
 import { bare, messageCache, numberOf, truncate } from "#lib/utils";
 import { handleMessages } from "./handler.js";
 
@@ -88,19 +88,19 @@ const onParticipants = (sock) => async ({ id, author, authorPn, action, particip
     if (action === "add" || action === "remove") {
       const card = await renderMemberCard(sock, action === "add" ? "welcome" : "goodbye", { jid, rawId, meta });
       if (card) {
-        sent = await sock
-          .sendMessage(id, {
-            text,
-            mentions,
-            externalAdReply: {
-              title: action === "add" ? "👋 Selamat datang!" : "👋 Sampai jumpa!",
-              body: meta?.subject ?? config.name,
-              thumbnail: card,
-              largeThumbnail: true,
-              url: config.social?.github,
+        const style = db.settings.cardStyle ?? "preview";
+        const info = { text, mentions, title: action === "add" ? "👋 Selamat datang!" : "👋 Sampai jumpa!", body: meta?.subject ?? config.name };
+        // Gaya pilihan dulu; kalau WhatsApp menolak, coba gaya satunya sebelum menyerah.
+        for (const attempt of style === "image" ? ["image", "preview"] : ["preview", "image"]) {
+          sent = await sock.sendMessage(id, cardPayload(card, { ...info, style: attempt })).then(
+            () => true,
+            (err) => {
+              logger.warn(`Kartu ${action} (${attempt}) gagal terkirim: ${err.message}`);
+              return false;
             },
-          })
-          .then(() => true, () => false);
+          );
+          if (sent) break;
+        }
       }
       if (!sent) {
         const url = await withTimeout(sock.profilePictureUrl(jid, "image").catch(() => null), 5000);

@@ -1,12 +1,13 @@
 import { definePlugin } from "#lib/plugins";
-import { STATUS_MAX_SECONDS, audioToVideo } from "#lib/media";
+import { STATUS_MAX_SECONDS, audioToOpus, audioToVideo } from "#lib/media";
 
 /*
  * Posting status grup (Group Status) lewat opsi `groupStatus` @zavedyaid/baileys.
- * Hanya admin grup & owner. Mendukung teks, gambar, video, dan audio (audio diubah jadi video — lihat lib/media.js).
+ * Hanya admin grup & owner. Mendukung teks, gambar, video, dan audio (audio utuh sebagai voice note — lihat lib/media.js).
  *   .swgc <teks>                       → status teks
  *   kirim / reply gambar|video + .swgc [caption]
- *   kirim / reply audio + .swgc
+ *   kirim / reply audio + .swgc        → audio utuh sebagai voice note (tanpa batas 60 detik)
+ *   kirim / reply audio + .swgc -v     → cadangan: audio dibungkus video (maks 60 detik)
  */
 export default definePlugin({
   name: "swgc",
@@ -17,7 +18,9 @@ export default definePlugin({
   access: { group: true, admin: true },
   async run({ ctx }) {
     const media = ctx.hasMedia ? await ctx.fetchMedia().catch(() => null) : null;
-    const text = ctx.argsStr || ctx.quotedText || "";
+    // "-v": audio dibungkus video (cadangan). Tanpa -v: audio utuh sebagai voice note.
+    const asVideo = /(^|\s)-v(\s|$)/i.test(ctx.argsStr);
+    const text = (ctx.argsStr.replace(/(^|\s)-v(?=\s|$)/gi, " ").trim() || ctx.quotedText || "");
     let payload;
     let note = "";
 
@@ -25,13 +28,22 @@ export default definePlugin({
       if (["image", "video"].includes(media.kind)) {
         payload = { [media.kind]: media.buffer, ...(text && { caption: text }) };
       } else if (media.kind === "audio") {
-        // Audio mentah tidak didukung sebagai status (muncul "update WhatsApp"): bungkus jadi video, maks 60 detik.
         ctx.react("⏳");
-        const video = await audioToVideo(media.buffer).catch(() => {
-          throw new Error("Audio tidak bisa diubah jadi video status (file rusak atau format tidak didukung).");
-        });
-        payload = { video, mimetype: "video/mp4", ...(text && { caption: text }) };
-        note = `\n🎵 Audio dikirim sebagai video status (maks ${STATUS_MAX_SECONDS} detik).`;
+        if (asVideo) {
+          // Cadangan bila WhatsApp-mu menolak voice note sebagai status: audio dibungkus video (maks 60 detik).
+          const video = await audioToVideo(media.buffer).catch(() => {
+            throw new Error("Audio tidak bisa diubah jadi video status (file rusak atau format tidak didukung).");
+          });
+          payload = { video, mimetype: "video/mp4", ...(text && { caption: text }) };
+          note = `\n🎵 Audio dikirim sebagai video status (maks ${STATUS_MAX_SECONDS} detik).`;
+        } else {
+          // Audio utuh (tanpa batas 60 detik) sebagai voice note.
+          const opus = await audioToOpus(media.buffer).catch(() => {
+            throw new Error("Audio tidak bisa diproses (file rusak atau format tidak didukung).");
+          });
+          payload = { audio: opus.buffer, mimetype: "audio/ogg; codecs=opus", ptt: true, ...(opus.seconds && { seconds: opus.seconds }) };
+          note = `\n🎵 Audio dikirim utuh sebagai voice note${opus.seconds ? ` (${Math.floor(opus.seconds / 60)}:${String(opus.seconds % 60).padStart(2, "0")})` : ""}.`;
+        }
       } else {
         return ctx.reply("❌ Status grup hanya mendukung teks, gambar, video, dan audio.");
       }

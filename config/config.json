@@ -41,10 +41,6 @@
     "hours": 24,
     "expiryUnit": "ms"
   },
-  "api": {
-    "baseUrl": "https://api.zavedya.id",
-    "timeout": 60000
-  },
   "donate": {
     "title": "Donasi - Seikhlasnya",
     "description": "Berapapun donasinya",
