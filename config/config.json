@@ -27,12 +27,17 @@
   "behavior": {
     "staleAfterSeconds": 120
   },
+  "ownerGreet": {
+    "cooldownMinutes": 30
+  },
   "features": {
     "selfMode": false,
     "antiCall": false,
     "statusReact": false,
     "cmdSuggest": true,
-    "levelUpNotif": true
+    "levelUpNotif": true,
+    "ownerGreet": true,
+    "registerRequired": true
   },
   "promo": {
     "text": "Artificial Intelligence, The beginning of the robot era",

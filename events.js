@@ -45,7 +45,7 @@ const displayName = (jid, rawId) => db.users[jid]?.name ?? db.users[rawId]?.name
 const renderMemberCard = async (sock, kind, { jid, rawId, meta }) => {
   try {
     const avatar = await fetchAvatar(sock, jid);
-    return await renderCard(kind, { name: displayName(jid, rawId), group: meta?.subject ?? "Grup", count: meta?.participants?.length ?? 0, avatar });
+    return await renderCard(kind, { name: displayName(jid, rawId), fallbackName: numberOf(jid), group: meta?.subject ?? "Grup", count: meta?.participants?.length ?? 0, avatar });
   } catch (err) {
     logger.warn(`Kartu ${kind} gagal dirender: ${err.message}`);
     return null;

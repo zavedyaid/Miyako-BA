@@ -36,7 +36,7 @@
 - **Pesan Interaktif Bawaan Fork**: Gambar header, baris promo, tombol URL / salin / balas cepat, serta **List Menu** bertingkat (Utama, Kategori, Support) lewat `nativeFlow` `@zavedyaid/baileys`.
 - **Menu Bertingkat**: Satu tombol *List Menu* berisi sub-list, baris balas ↩ langsung, dan daftar kategori yang dibuat otomatis dari plugin yang terpasang.
 - **Kartu Balasan Konsisten**: Semua balasan me-reply kontak palsu *WhatsApp Business • Status*, teks biasa tampil sebagai kartu link-preview (gambar acak dari `config/reply/`), dan semua pesan keluar ditandai **diteruskan dari channel**.
-- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 101 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
+- **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 102 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
 - **Alur Lagu 3 Langkah**: `.play <judul>` → pilih lagu dari list → lirik dengan link preview → lagunya (MP3).
 - **Stiker 1:1**: Gambar, video, GIF, atau stiker jadi stiker persegi dengan crop tengah (`.s fit` tanpa crop).
 - **Limit, Level & EXP**: Limit harian per pengguna, notifikasi naik level otomatis, dan akses premium.
@@ -66,13 +66,16 @@
 │   ├── groups.js             # Cache grup + cek admin
 │   ├── interactive.js        # Pesan gambar + promo + tombol/list
 │   ├── levelup.js            # Notifikasi naik level
-│   ├── logger.js             # Log & banner
+│   ├── logger.js             # Log & banner konsol (ASCII art maskot + nama bot + kredit)
+│   ├── banner-art.js         # Seni ASCII hasil tools/make-banner-art.py (jangan diedit manual)
 │   ├── plugins.js            # definePlugin + loader (hot-reload)
 │   ├── serialize.js          # Pesan mentah → ctx
 │   ├── songs.js              # Cache hasil .play untuk .ytplay
 │   ├── sticker.js            # Media → stiker
 │   ├── targets.js            # Target @mention / reply / nomor + pencocokan anggota grup
 │   ├── access.js             # Aturan akses command (dipakai handler & AutoAI)
+│   ├── exec.js               # Eksekusi command: akses → limit → run → pesan limit (handler & AutoAI)
+│   ├── groupstatus.js        # Status grup media (gambar / video / voice note) lewat relay manual
 │   ├── cards.js              # Render kartu welcome / goodbye / level-up (ffmpeg + font Poppins)
 │   ├── media.js              # audio → video untuk status grup
 │   ├── vision.js             # AI membaca gambar / video (frame) + fallback antar-model
@@ -446,7 +449,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 
 | Kategori | Command |
 | :--- | :--- |
-| **general** | `.menu`, `.ping`, `.profil`, `.afk`, `.owner`, `.donasi` |
+| **general** | `.menu`, `.ping`, `.profil`, `.level` (kartu level & progres EXP; alias `.rank` `.exp`), `.afk`, `.owner`, `.donasi`, `.tqto` |
 | **ai** | `.gemini`, `.claude`, `.gpt`, `.deepseek`, `.glm`, `.kimi`, `.qwen`, `.minimax`, `.hunyuan`, `.stepfun`, `.sonus`, `.agnes`, `.coding`, `.free`, `.aimodels`, `.flux` (gambar), `.nanobanana` (edit gambar) |
 | **downloader** | `.play` (list lagu → lirik → audio), `.ytmp3`, `.ytmp4`, `.tiktok` (`.tt`: tanpa watermark + caption lengkap + musik MP3), `.dailymotion`, `.likee`, `.rednote`, `.pindl`, `.soundcloud`, `.spotify`, `.mediafire`, `.terabox` |
 | **search** | `.pinterest`, `.konachan`, `.dafont`, `.dramabox`, `.gnews`, `.scsearch`, `.yts`, `.lirik` |
@@ -520,7 +523,7 @@ Singkatan: .setbio  .setwelcome  .setgoodbye  .setname  .setdesc  (.set bio … 
                                   (adminnotif = notif promote & demote)
 .on autoai                        → AutoAI di grup ini (khusus owner)
 .on bot                           → bot aktif/mati di satu grup (owner)
-.on owner selfmode | autoai | autoread | anticall | statusreact | cmdsuggest | levelup   → fitur bot (owner)
+.on owner selfmode | autoai | autoread | limitnotice | anticall | statusreact | cmdsuggest | levelup   → fitur bot (owner)
 ```
 
 Pengaturan `.on owner …` tersimpan di `database/settings.json` dan dipakai lagi setelah restart.
@@ -533,7 +536,12 @@ Balasan otomatis tanpa command, dengan karakter Miyako (Blue Archive); **owner d
 - Ganti karakter: `.set owner persona <teks>` (`reset` untuk kembali ke Miyako). Ganti AI: `.set owner aimodel <nama>`.
 - Ada jeda 5 detik per pengguna (owner bebas) dan ingatan 6 pesan terakhir per chat (`.resetai` untuk menghapus).
 - **Membaca gambar & video**: kirim / reply gambar atau video ke Miyako (di grup sebutkan namanya di caption). Video dibaca lewat satu cuplikan frame (butuh ffmpeg).
-- **Menjalankan perintah lewat obrolan** (khusus yang berhak; AutoAI harus sudah aktif di chat itu). Kalimat yang jelas dikenali langsung tanpa menunggu AI (`lib/intents.js`: "tutup grup ini", "bukain gc", "tag semua …", "keluarkan @user", "jadikan admin @user", "nyalakan welcome", "ganti nama grup jadi …", "list owner", "beri premium 30 hari" …); selain itu AI yang memilih lewat penanda `[[CMD: …]]`. Kalimat berisi larangan ("jangan tutup grup") atau pertanyaan ("kenapa grup ditutup?") diabaikan. *"Miyako, tutup grup ini"* → `.close`. Admin grup dan owner bisa memicu perintah grup (`open close tagall hidetag linkgc revoke infogc listadmin kick promote demote add on off set`); **hanya owner** yang bisa memicu perintah owner (`listowner listprem addprem delprem ban unban listplugin join leave`). Hak akses dicek ulang seperti command biasa (admin / bot-admin), target `kick/promote/demote` harus dari mention atau reply asli, dan `eval exec restart addplugin delplugin addowner delowner` **tidak pernah** bisa dipicu lewat AutoAI. Anggota biasa tidak mendapat tindakan apa pun.
+- **Semua perintah di `.menu` bisa dipicu lewat obrolan** (AutoAI harus aktif di chat itu; hak akses & limit sama persis seperti mengetik command). Urutannya: (1) aturan kalimat — "tutup grup ini", "putar lagu …", link TikTok / YouTube / Spotify / dll → pengunduh yang cocok, gambar + "hapus background" → `.removebg`, gambar / video + "jadikan stiker" → `.s`, gambar / video / audio + "jadikan link" → `.tourl`, "stalk github …", "lirik …", "gambarkan …", "menu", "level saya", dst; (2) bila terdengar seperti permintaan tapi tak ada aturan yang cocok, **router AI** memilih satu perintah dari seluruh katalog yang boleh dipakai pengirim; (3) selain itu Miyako mengobrol. Perintah berbahaya (`eval exec restart addplugin delplugin getplugin addowner delowner`) tidak pernah bisa dipicu. Audio / voice note dikenali sebagai lampiran (bisa dijadikan link / status grup lewat kalimat), tetapi **isinya belum bisa didengarkan** — tidak ada API transkripsi.
+- **Perintah grup / owner lewat obrolan** (khusus yang berhak): Kalimat yang jelas dikenali langsung tanpa menunggu AI (`lib/intents.js`: "tutup grup ini", "bukain gc", "tag semua …", "keluarkan @user", "jadikan admin @user", "nyalakan welcome", "ganti nama grup jadi …", "list owner", "beri premium 30 hari" …); selain itu AI yang memilih lewat penanda `[[CMD: …]]`. Kalimat berisi larangan ("jangan tutup grup") atau pertanyaan ("kenapa grup ditutup?") diabaikan. *"Miyako, tutup grup ini"* → `.close`. Admin grup dan owner bisa memicu perintah grup (`open close tagall hidetag linkgc revoke infogc listadmin kick promote demote add on off set`); **hanya owner** yang bisa memicu perintah owner (`listowner listprem addprem delprem ban unban listplugin join leave`). Hak akses dicek ulang seperti command biasa (admin / bot-admin), target `kick/promote/demote` harus dari mention atau reply asli, dan `eval exec restart addplugin delplugin addowner delowner` **tidak pernah** bisa dipicu lewat AutoAI. Anggota biasa tidak mendapat tindakan apa pun.
+
+### Pesan limit
+
+Setiap command berlimit yang berhasil dijalankan — termasuk lewat AutoAI dan tombol list `.play` — diikuti pesan singkat, mis. `🎟️ Limit terpakai 1 • sisa 24/25`, dengan peringatan bila sisa ≤ 3 atau habis. Command yang gagal mengembalikan limitnya dan tidak memunculkan pesan. Premium dan owner tidak dipotong. Matikan pesannya dengan `.off owner limitnotice` (limit tetap terpotong).
 
 ### AI membaca gambar & video
 
@@ -543,8 +551,12 @@ Semua command AI (`.gemini .gpt .claude .deepseek …`) menerima gambar / video:
 
 Notifikasi anggota masuk / keluar dan level-up tampil sebagai **link preview besar** berisi kartu bergambar (foto profil, nama, nama grup, jumlah anggota; level-up memakai bar progres EXP). Kartu dirender dengan ffmpeg (`drawtext` + `overlay`) memakai font Poppins — tanpa library tambahan. Bila render gagal, bot jatuh kembali ke foto profil + teks atau teks saja.
 - Aset: `config/cards/*-bg.png` (latar tanpa teks), `config/fonts/` (Poppins, lisensi OFL). Tata letak ada di `lib/cards.js`.
+- Banner konsol: ganti gambar maskot lewat `python3 tools/make-banner-art.py gambar.png` (menulis ulang `lib/banner-art.js`). `BANNER_ASCII=1` memakai huruf biasa tanpa karakter braille; `BANNER_SIZE=large|small|tiny|none` memaksa ukuran. Konsol panel / pipe (lebar tak diketahui, mis. Pterodactyl di HP) otomatis memakai ukuran kecil.
 - Ganti desain: siapkan 3 template baru (teks contoh seperti di template aslinya), sesuaikan koordinat di `tools/build-card-assets.py` dan `lib/cards.js`, lalu jalankan `python3 tools/build-card-assets.py welcome.png goodbye.png levelup.png` (butuh `opencv-python numpy pillow fonttools`).
-- Nama pengguna yang berisi emoji / aksara non-Latin disaring agar tidak tampil sebagai kotak.
+- Nama pengguna / grup yang memakai "font" Unicode (𝑀𝑖𝑦𝑎𝑘𝑜, ｍｉｙａｋｏ, ⓜⓘⓨⓐ, ᴍɪʏᴀᴋᴏ) dinormalkan ke huruf biasa; emoji dan aksara yang tidak ada di font dibuang, tanda kurung yang jadi kosong dirapikan. Bila tak ada huruf tersisa, nama diganti nomor (grup: "Grup").
+- Tanpa foto profil (atau fotonya disembunyikan): kotak / lingkaran berwarna dengan huruf awal nama.
+- Tiap kartu memakai URL preview unik (`?card=…`) karena WhatsApp menyimpan thumbnail berdasarkan URL — tanpa itu kartu pertama muncul terus pada kartu berikutnya.
+- Kartu **level-up** menampilkan level lama → baru dengan bar penuh. Untuk melihat progres EXP yang terus bertambah gunakan `.level` (kiri = level sekarang, kanan = level berikutnya, bar = EXP menuju level berikutnya).
 
 ### Notifikasi grup
 
@@ -572,7 +584,7 @@ Tempel perintah curl apa adanya (awalan `curl` boleh dihilangkan), contoh: `.cur
 ### Status grup (`.swgc`)
 
 Admin grup dan owner bisa memposting **status grup** lewat opsi `groupStatus` @zavedyaid/baileys:
-`.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio dikirim **utuh (tanpa batas 60 detik)** sebagai *voice note* (OGG/Opus) — file audio biasa seperti mp3 ditolak WhatsApp sebagai status dan memunculkan pesan "update WhatsApp". Bila WhatsApp-mu tetap menolak voice note, pakai `.swgc -v` sebagai cadangan (audio dibungkus video, maks 60 detik).
+`.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio dikirim **utuh (tanpa batas 60 detik)** sebagai *voice note* (OGG/Opus) — file audio biasa seperti mp3 ditolak WhatsApp sebagai status dan memunculkan pesan "update WhatsApp". Media status grup (gambar / video / voice note) dikirim lewat relay manual (`lib/groupstatus.js`) supaya jenis medianya terdeteksi benar oleh Baileys; teks tetap lewat `groupStatus`. Opsi: `-s` = jalur lama, `-v` = audio dibungkus video (maks 60 detik) bila WhatsApp-mu tetap menolak voice note.
 
 > ⚠️ `.eval`, `.exec`, dan `.addplugin` memberi kendali penuh atas server. Hanya jadikan owner (di `ownerNumbers` maupun lewat `.addowner`) orang yang benar-benar kamu percaya.
 

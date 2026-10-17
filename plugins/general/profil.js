@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { formatRegDate, isRegistered } from "#lib/register";
 import { bufferThumbnail, expNeeded, formatNumber, getBuffer, numberOf, progressBar } from "#lib/utils";
 
 export default definePlugin({
@@ -12,7 +13,8 @@ export default definePlugin({
     const self = targetId === ctx.senderId;
     const target = self ? user : db.user(targetId);
     const number = numberOf(targetId);
-    const name = self ? ctx.pushName : target.name || number;
+    const registered = isRegistered(target);
+    const name = registered ? target.reg.name : self ? ctx.pushName : target.name || number;
 
     const isOwner = self ? role.owner : config.owners.has(number);
     const isPremium = self ? role.premium : isOwner || Boolean(target.premium?.on);
@@ -26,15 +28,29 @@ export default definePlugin({
       thumbnail = bufferThumbnail(await getBuffer(url), 640);
     } catch {}
 
+    const identity = registered
+      ? [
+          `🎂 Umur    : ${target.reg.age} tahun`,
+          `⚧️ Gender  : ${target.reg.gender}`,
+          `🔖 SN      : ${target.reg.sn}`,
+          `🎫 No. Kartu : ${target.reg.no}`,
+          `📅 Terdaftar : ${formatRegDate(target.reg.at)}`,
+        ]
+      : [self ? `📝 Belum terdaftar — ketik *${ctx.prefix}register*` : "📝 Belum terdaftar"];
+
     await ctx.reply(
       [
         `*${name}*`,
         `📱 +${number}`,
         `🏅 ${status}`,
+        "",
+        ...identity,
+        "",
         `📊 Limit : ${isPremium ? "∞" : target.limit}`,
         `🏆 Level : ${target.level}`,
         `✨ EXP   : ${formatNumber(target.exp)}/${formatNumber(need)}`,
         `     [${progressBar(target.exp, need)}]`,
+        ...(registered ? ["", `🪪 Lihat kartu: *${ctx.prefix}kartu${self ? "" : " @tag"}*`] : []),
       ].join("\n"),
       { preview: { large: true, title: name, body: `Profil · ${status}`, ...(thumbnail && { thumbnail }) } },
     );

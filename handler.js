@@ -4,15 +4,17 @@
  * GitHub  : https://github.com/ZavedyaID/Miyako-BA
  * License : MIT
  *
- * Alur: messages.upsert → ctx → identity → gate → exp → afk → antilink → autoreply → commands
+ * Alur: messages.upsert → ctx → identity → gate → exp → sapaan owner → afk → antilink → autoreply → registrasi → commands
  */
 
 import { generateMessageIDV2 } from "#lib/baileys";
 import { config, isOwnerIdentity } from "#lib/config";
 import { db } from "#lib/database";
 import { groups, inspectGroup } from "#lib/groups";
-import { authorize } from "#lib/access";
+import { executeCommand } from "#lib/exec";
 import { announceLevelUp } from "#lib/levelup";
+import { greetOwner } from "#lib/ownergreet";
+import { registration } from "#lib/register";
 import { logger } from "#lib/logger";
 import { registry } from "#lib/plugins";
 import { buildContext } from "#lib/serialize";
@@ -183,45 +185,16 @@ const commands = async (env, next) => {
     return;
   }
 
-  const denied = await authorize(plugin, env);
-  if (denied) return void ctx.reply(denied);
-
-  const cost = plugin.limit ?? 0;
-  const charged = cost > 0 && !role.premium;
-  if (charged) {
-    if (user.limit < cost) return void ctx.reply(`❌ Limit harian habis!\n📊 Punya: ${user.limit} | Butuh: ${cost}`);
-    user.limit -= cost;
-  }
-
-  db.stats[plugin.name] = (db.stats[plugin.name] ?? 0) + 1;
-  const levelBefore = user.level;
-  gainExp(user, plugin.exp);
-  db.save("users", "stats");
-
-  logger.cmd({
-    command: `${ctx.prefix}${ctx.command}`,
-    name: ctx.pushName,
-    number: ctx.senderNumber,
-    where: ctx.isGroup ? (groups.peek(ctx.chatId)?.subject ?? "grup") : null,
-  });
-  ctx.typing();
-
-  try {
-    await plugin.run(env);
-  } catch (err) {
-    if (charged) {
-      user.limit += cost;
-      db.save("users");
-    }
-    logger.error(`[${plugin.name}] ${err.stack ?? err.message}`);
-    ctx.reply(`❌ Terjadi kesalahan: ${err.message}`);
-  }
-
-  // Setelah balasan command terkirim, baru umumkan kalau naik level.
-  await announceLevelUp(env, levelBefore);
+  await executeCommand(plugin, env);
 };
 
-const middleware = [identity, gate, exp, afk, antilink, autoreply, commands];
+// Sapaan untuk owner di grup — berjalan sendiri, tidak menahan alur pesan.
+const ownerGreet = (env, next) => {
+  greetOwner(env).catch((err) => logger.warn(`Sapaan owner gagal: ${err.message}`));
+  return next();
+};
+
+const middleware = [identity, gate, exp, ownerGreet, afk, antilink, autoreply, registration, commands];
 const run = (env, i = 0) => middleware[i]?.(env, () => run(env, i + 1));
 
 export const handleMessages = (sock) => async ({ messages, type }) => {

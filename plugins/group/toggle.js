@@ -27,6 +27,12 @@ const GROUP_FEATURES = {
     get: (chat) => chat.adminNotif,
     set: (chat, on) => (chat.adminNotif = on),
   },
+  ownergreet: {
+    aliases: ["sapaowner", "sapaanowner"],
+    help: "Bot menyapa saat owner chat di grup ini",
+    get: (chat) => chat.ownerGreet !== false,
+    set: (chat, on) => (chat.ownerGreet = on),
+  },
   autoai: {
     aliases: ["ai"],
     help: "AutoAI Miyako membalas otomatis di grup ini (khusus owner)",
@@ -102,6 +108,11 @@ const OWNER_FEATURES = {
     help: "Saran command bila salah ketik",
     key: "cmdSuggest",
   },
+  limitnotice: {
+    aliases: ["limitinfo", "pesanlimit"],
+    help: "Kabari sisa limit setiap kali limit terpakai",
+    key: "limitNotice",
+  },
   levelup: {
     aliases: ["levelupnotif"],
     help: "Notifikasi naik level",
@@ -112,7 +123,7 @@ const OWNER_FEATURES = {
 for (const feature of Object.values(OWNER_FEATURES)) {
   if (!feature.key) continue;
   const { key } = feature;
-  feature.get = ({ config }) => (key === "levelUpNotif" ? config.features?.[key] !== false : Boolean(config.features?.[key]));
+  feature.get = ({ config }) => (["levelUpNotif", "limitNotice"].includes(key) ? config.features?.[key] !== false : Boolean(config.features?.[key]));
   feature.set = ({ db, config }, on) => {
     (config.features ??= {})[key] = on;
     (db.settings.features ??= {})[key] = on;
