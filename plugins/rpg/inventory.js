@@ -37,7 +37,7 @@ const hero = definePlugin({
         `🎒 *Tas*: ${p}inv · ${p}pakai <item> · ${p}equip <item> · ${p}unequip`,
         `🏪 *Toko*: ${p}toko · ${p}buy/beli <id> [n] · ${p}sell/jual <id> [n|all]`,
         `🔨 *Tempa*: ${p}tempa (daftar resep) · ${p}tempa <id>`,
-        `🏧 *Bank*: ${p}buy atm → ${p}setpin (chat pribadi) → ${p}atm <SN> <PIN> · ${p}deposit · ${p}tarik · ${p}transfer`,
+        `🏧 *Bank*: ${p}buy atm → ${p}setpin (chat pribadi) → ${p}atm <SN> <PIN> · ${p}deposit · ${p}tarik · ${p}tf @tag <jumlah> [dompet|bank] [dompet|bank]`,
         `🚖 *Driver*: ${p}ojol · ${p}gocar (Lv 3+) · ${p}gofood (Lv 2+) — rating bintang, tip, bonus streak, peti tiap 10 order`,
         `🤝 *Sosial*: ${p}kerja · ${p}misi`,
         `⚔️ *Lawan pemain (tag)*: ${p}duel @tag · ${p}balap @tag · ${p}rampok @tag · ${p}suitpvp @tag [taruhan]`,

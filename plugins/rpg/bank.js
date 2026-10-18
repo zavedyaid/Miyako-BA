@@ -147,27 +147,49 @@ const wd = definePlugin({
   },
 });
 
+const WALLET = /^(dompet|wallet|gold)$/i, BANK = /^(bank|atm|rekening)$/i;
+const where = (w) => (w === "bank" ? "bank" : "dompet");
+
 const transfer = definePlugin({
   name: "transfer",
   aliases: ["tf", "kirim"],
   category: "rpg",
   access: { group: true },
-  description: "Kirim gold dari dompet ke pemain lain (biaya 2%)",
-  usage: "transfer @tag <jumlah>",
+  description: "Kirim gold dari dompet atau bank ke dompet / bank pemain lain (biaya 2%)",
+  usage: "transfer @tag <jumlah|all> [dompet|bank] [dompet|bank]",
   async run(env) {
-    const { ctx } = env, { r } = open(env);
+    const { ctx } = env, p = ctx.prefix, { r } = open(env);
     if (needOpen(env, r)) return;
     const targetId = ctx.mentionedJid[0] ?? ctx.quotedSender;
     const target = targetId && db.users[targetId];
-    if (!target || targetId === ctx.senderId) return ctx.reply(`💸 Tag / reply orangnya. Contoh: *${ctx.prefix}transfer @tag 1000*`);
-    const amount = game.parseAmount(ctx.args.find((a) => /^\d/.test(a)) ?? ctx.args.at(-1), r.gold);
-    if (!amount) return ctx.reply("💸 Jumlahnya berapa?");
+    if (!target || targetId === ctx.senderId) {
+      return ctx.reply(`💸 Tag / reply orangnya.\nContoh: *${p}tf @tag 1000* (dari dompet)\n*${p}tf @tag 1000 bank* (dari bank ke bank)\n*${p}tf @tag 1000 bank dompet* (dari bank ke dompet tujuan)`);
+    }
+
+    // Kata pertama = sumber saldo, kata kedua = tujuan (bila tidak ditulis, tujuan = sama dengan sumber).
+    const places = ctx.args.filter((a) => WALLET.test(a) || BANK.test(a)).map((a) => (BANK.test(a) ? "bank" : "wallet"));
+    const from = places[0] ?? "wallet", to = places[1] ?? from;
+    const balance = from === "bank" ? r.bank : r.gold;
+    const raw = ctx.args.find((a) => /^(\d|all$|semua$|habis$)/i.test(a));
+    if (!raw) return ctx.reply("💸 Jumlahnya berapa?");
+    const all = /^(all|semua|habis)$/i.test(raw);
+    const amount = all ? Math.floor(balance / 1.02) : game.parseAmount(raw, balance);
+    if (!amount) return ctx.reply(all ? `👛 Saldo ${where(from)}mu kosong.` : "💸 Jumlahnya berapa?");
+
     const fee = Math.max(1, Math.round(amount * 0.02));
-    if (r.gold < amount + fee) return ctx.reply(`👛 Gold kurang. Butuh *${fmt(amount + fee)}* (termasuk biaya 2%), dompetmu ${fmt(r.gold)}.`);
+    if (balance < amount + fee) return ctx.reply(`${from === "bank" ? "🏦" : "👛"} Saldo ${where(from)} kurang. Butuh *${fmt(amount + fee)}* (termasuk biaya 2%), saldo ${where(from)}mu ${fmt(balance)}.`);
+
     const tr = game.getRpg(target);
-    r.gold -= amount + fee; tr.gold += amount;
+    if (to === "bank") {
+      game.accrue(tr);
+      const room = game.bankCap(tr) - tr.bank;
+      if (amount > room) return ctx.reply(`🏦 Bank tujuan hanya muat ${fmt(Math.max(0, room))} lagi (limit ${fmt(game.bankCap(tr))}). Coba kirim ke *dompet*: *${p}tf @tag ${amount} ${where(from)} dompet*`);
+    }
+
+    if (from === "bank") r.bank -= amount + fee; else r.gold -= amount + fee;
+    if (to === "bank") tr.bank += amount; else tr.gold += amount;
     db.save("users");
-    await sendAtm(env, r, `Transfer ${fmt(amount)} G ke ${target.reg?.name ?? "pemain"} (biaya ${fmt(fee)} G)`, [targetId]);
+    await sendAtm(env, r, `Transfer ${fmt(amount)} G (${where(from)} → ${where(to)}) ke ${target.reg?.name ?? "pemain"} (biaya ${fmt(fee)} G)`, [targetId]);
   },
 });
 
