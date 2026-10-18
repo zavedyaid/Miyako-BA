@@ -24,6 +24,9 @@
 - [Router API (`lib/api.js`)](#-router-api-libapijs)
 - [Konfigurasi Bot (`config.json`)](#-konfigurasi-bot-configjson)
 - [Daftar Fitur](#-daftar-fitur)
+- [Registrasi Pengguna](#-registrasi-pengguna)
+- [Game RPG](#-game-rpg)
+- [Kartu Gambar](#-kartu-gambar)
 - [Perintah Owner](#-perintah-owner)
 - [Sistem Limit, Level & EXP](#-sistem-limit-level--exp)
 - [Kredit & Lisensi](#-kredit--lisensi)
@@ -39,6 +42,11 @@
 - **Router API Zavedya**: `lib/api.js` hanya menyambung ke `api.zavedya.id` (GET/POST). Tiap plugin menyebut endpoint dan mengolah responsnya sendiri — 102 command + AutoAI siap pakai untuk AI, downloader, search, stalker, wiki, tools, manajemen grup, dan owner.
 - **Alur Lagu 3 Langkah**: `.play <judul>` → pilih lagu dari list → lirik dengan link preview → lagunya (MP3).
 - **Stiker 1:1**: Gambar, video, GIF, atau stiker jadi stiker persegi dengan crop tengah (`.s fit` tanpa crop).
+- **Registrasi Wajib**: `.register` (nama → umur → gender) lalu pengguna mendapat **kartu register** bergambar lengkap dengan nomor SN dan nomor kartu. Command (termasuk AutoAI) hanya bisa dipakai setelah terdaftar; owner dikecualikan.
+- **Game RPG Lengkap**: Tas (`.inv`), status hero, berburu, dungeon + boss, menambang, memancing, toko, tempa, hadiah harian/mingguan/peti, driver **ojol / gocar / gofood**, lawan pemain via tag (**duel, balap, rampok, suit PvP**), dan **leaderboard** multi-kategori — semuanya tampil sebagai **kartu gambar** dan hanya bisa dipakai di grup.
+- **Kartu Bergaya Kaca**: Register, profil, welcome, goodbye, level-up, hero, tas/toko, dan hasil aksi RPG memakai gaya yang sama (dirender ffmpeg + font Poppins).
+- **Foto Profil di Kartu Balasan**: Gambar di kartu *WhatsApp Business • Status* adalah foto profil pengirim perintah.
+- **Sapaan Owner**: Bot menyapa setiap owner chat di grup (dengan jeda agar tidak spam).
 - **Limit, Level & EXP**: Limit harian per pengguna, notifikasi naik level otomatis, dan akses premium.
 - **Donasi via Katalog WhatsApp**: `.donasi` mengirim satu pesan produk katalog dengan nomor e-wallet di dalamnya.
 - **Kontrol Akses per Command**: Batasan `access` (owner, premium, grup, private, admin, bot-admin) per plugin, pesan lama diabaikan (`behavior.staleAfterSeconds`), dan saran command bila salah ketik.
@@ -76,7 +84,11 @@
 │   ├── access.js             # Aturan akses command (dipakai handler & AutoAI)
 │   ├── exec.js               # Eksekusi command: akses → limit → run → pesan limit (handler & AutoAI)
 │   ├── groupstatus.js        # Status grup media (gambar / video / voice note) lewat relay manual
-│   ├── cards.js              # Render kartu welcome / goodbye / level-up (ffmpeg + font Poppins)
+│   ├── cards.js              # Render kartu (welcome, goodbye, levelup, register, profile, hero, grid, result) — ffmpeg + font Poppins
+│   ├── register.js           # Registrasi: sesi tanya-jawab, SN/nomor kartu, gerbang "wajib terdaftar"
+│   ├── ownergreet.js         # Sapaan saat owner chat di grup
+│   ├── rpg.js                # Data & aturan game RPG (item, monster, harga, hadiah)
+│   ├── rpgui.js              # Kartu & caption RPG (tas, toko, hero, hasil aksi)
 │   ├── media.js              # audio → video untuk status grup
 │   ├── vision.js             # AI membaca gambar / video (frame) + fallback antar-model
 │   ├── autoai.js             # AutoAI: karakter Tsukiyuki Miyako, riwayat, pemicu grup
@@ -84,7 +96,7 @@
 │   ├── upload.js             # Unggah file ke cdn.zavedya.id → link (uploadFile / uploadImage)
 │   └── utils.js              # jid, waktu, teks, media, cache, http
 └── plugins/                  # Seluruh command (hot-reload)
-    ├── general/              # menu, ping, profil, afk, owner, donate
+    ├── general/              # menu, ping, profil, register (+ kartu, unreg), afk, owner, donate
     ├── ai/                   # gemini, claude, gpt, deepseek, glm, kimi, qwen, … (17)
     ├── downloader/           # play, ytplay, ytmp3, ytmp4, tiktok, spotify, … (12)
     ├── search/               # pinterest, konachan, dafont, dramabox, gnews, lirik, … (8)
@@ -92,6 +104,7 @@
     ├── wiki/                 # hok, wuwa (2)
     ├── tools/                # removebg, converter, tempmail, tourl, cekidch, get/post/put/patch/delete/head, curl (12)
     ├── group/                # tagall, hidetag, add, kick, promote, demote, set, on/off, swgc, … (16)
+    ├── rpg/                  # inv, rpg, berburu, dungeon, nambang, mancing, daily, weekly, peti, toko, beli, jual, pakai, equip, tempa, ojol, gocar, gofood, balap, suitpvp, leaderboard
     ├── maker/                # sticker
     └── owner/                # eval, exec, restart, setmode, plugin manager, akses, join/leave, cardtest (19)
 ```
@@ -438,6 +451,11 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | `features.statusReact` | Reaksi otomatis ke status |
 | `features.cmdSuggest` | Saran command bila salah ketik |
 | `features.levelUpNotif` | Notifikasi naik level otomatis |
+| `features.registerRequired` | `true` (bawaan) = wajib `.register` sebelum memakai bot; `false` = bebas |
+| `features.ownerGreet` | Bot menyapa saat owner chat di grup (per grup: `.on` / `.off ownergreet`) |
+| `ownerGreet.cooldownMinutes` | Jeda sapaan per owner per grup (bawaan `30`, `0` = setiap pesan owner) |
+| `features.cardChannelLabel` | `false` (bawaan) = gambar kartu dikirim bersih tanpa label "diteruskan dari channel" (label itu membuatnya tampak seperti link-preview); `true` = tetap berlabel |
+| `features.senderThumb` | `false` = gambar kartu balasan kembali acak (bukan foto profil pengirim) |
 | `promo` | Baris promo di pesan interaktif (`text`, `code`, `url`, `hours`) |
 | `social` | Link website, GitHub, dan grup |
 | `sticker` | `packname` dan `author` stiker |
@@ -449,7 +467,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 
 | Kategori | Command |
 | :--- | :--- |
-| **general** | `.menu`, `.ping`, `.profil`, `.level` (kartu level & progres EXP; alias `.rank` `.exp`), `.afk`, `.owner`, `.donasi`, `.tqto` |
+| **general** | `.menu`, `.sc` (info script + tombol GitHub), `.ping`, `.register`, `.kartu`, `.unreg`, `.profil` (kartu), `.level` (kartu level & progres EXP; alias `.rank` `.exp`), `.afk`, `.owner`, `.donasi`, `.tqto` |
 | **ai** | `.gemini`, `.claude`, `.gpt`, `.deepseek`, `.glm`, `.kimi`, `.qwen`, `.minimax`, `.hunyuan`, `.stepfun`, `.sonus`, `.agnes`, `.coding`, `.free`, `.aimodels`, `.flux` (gambar), `.nanobanana` (edit gambar) |
 | **downloader** | `.play` (list lagu → lirik → audio), `.ytmp3`, `.ytmp4`, `.tiktok` (`.tt`: tanpa watermark + caption lengkap + musik MP3), `.dailymotion`, `.likee`, `.rednote`, `.pindl`, `.soundcloud`, `.spotify`, `.mediafire`, `.terabox` |
 | **search** | `.pinterest`, `.konachan`, `.dafont`, `.dramabox`, `.gnews`, `.scsearch`, `.yts`, `.lirik` |
@@ -458,6 +476,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | **tools** | `.removebg`, `.converter`, `.tempmail`, `.tourl` (unggah media / link file ke CDN → link), `.cekidch` (ID & detail lengkap channel), `.get` `.post` `.put` `.patch` `.delete` `.head` `.curl` (premium) |
 | **group** | `.tagall`, `.hidetag`, `.add`, `.kick` (`.dor`), `.promote`, `.demote`, `.open`, `.close`, `.linkgc`, `.revoke`, `.infogc`, `.listadmin`, `.set`, `.on` / `.off`, `.swgc` |
 | **ai** (tambahan) | AutoAI Miyako (balas otomatis), `.resetai` |
+| **rpg** | `.inv` (`.inventory` `.tas`), `.rpg` (`.hero`; `.rpg help`), `.atm`, `.setpin`, `.deposit`, `.tarik`, `.transfer`, `.kerja`, `.misi`, `.ojol`, `.gocar`, `.gofood`, `.duel`, `.balap`, `.suitpvp`, `.rampok`, `.buy`, `.sell`, `.berburu`, `.dungeon`, `.nambang`, `.mancing`, `.daily`, `.weekly`, `.peti`, `.toko`, `.beli`, `.jual`, `.pakai`, `.equip`, `.unequip`, `.tempa`, `.leaderboard` (`.top` `.lb`) |
 | **maker** | `.s` / `.stiker` (1:1; `.s fit` tanpa crop) |
 
 Contoh:
@@ -587,6 +606,62 @@ Admin grup dan owner bisa memposting **status grup** lewat opsi `groupStatus` @z
 `.swgc <teks>`, atau kirim / reply gambar, video, atau audio dengan `.swgc [caption]`. Audio dikirim **utuh (tanpa batas 60 detik)** sebagai *voice note* (OGG/Opus) — file audio biasa seperti mp3 ditolak WhatsApp sebagai status dan memunculkan pesan "update WhatsApp". Media status grup (gambar / video / voice note) dikirim lewat relay manual (`lib/groupstatus.js`) supaya jenis medianya terdeteksi benar oleh Baileys; teks tetap lewat `groupStatus`. Opsi: `-s` = jalur lama, `-v` = audio dibungkus video (maks 60 detik) bila WhatsApp-mu tetap menolak voice note.
 
 > ⚠️ `.eval`, `.exec`, dan `.addplugin` memberi kendali penuh atas server. Hanya jadikan owner (di `ownerNumbers` maupun lewat `.addowner`) orang yang benar-benar kamu percaya.
+
+---
+
+## 📝 Registrasi Pengguna
+
+```text
+.register   → "Nama siapa?" → "Umur berapa?" → "Gender?" (Male/Female atau Laki²/Perempuan)
+```
+
+- Pesan **Register Di Proses** diedit menjadi **Sedang Menyiapkan**, lalu **Register Selesai** dan **kartu register** (gambar) dikirim berisi foto profil, nama, umur, gender, nomor WhatsApp, **SN** (mis. `9166-88F9-A3E9`), **No. Kartu** urut, tanggal daftar, level, dan status.
+- Pendaftar baru mendapat **hadiah registrasi** RPG (gold, Potion HP, Peti Kayu).
+- Jawab `batal` untuk membatalkan. `.kartu [@tag]` menampilkan kartu lagi, `.unreg ya` menghapus pendaftaran. `.profil` pengguna terdaftar tampil sebagai kartu.
+- Data: `database/users.json` → `reg = { on, name, age, gender, sn, no, at }`. Matikan kewajiban register lewat `features.registerRequired: false`.
+
+---
+
+## ⚔️ Game RPG
+
+Semua data pemain ada di `users.json` → `rpg`. Aturan, item, monster, harga, dan hadiah ada di **`lib/rpg.js`** (ubah bebas); tampilan di `lib/rpgui.js`; perintah di `plugins/rpg/`.
+
+| Kelompok | Command |
+| :--- | :--- |
+| Petualangan | `.berburu` (10 stamina) · `.dungeon` (30 stamina, Lv 5+, 3 musuh + boss) · `.nambang` (8) · `.mancing` (6) |
+| Hadiah | `.daily` (streak, peti tiap 7 hari) · `.weekly` (gold + berlian + peti emas) · `.peti <id> [n]` |
+| Tas & perlengkapan | `.inv [hal]` · `.pakai <ramuan>` · `.equip <id>` · `.unequip` |
+| Ekonomi | `.toko` · `.buy` / `.beli <id> [n]` · `.sell` / `.jual <id> [n\|all]` (struk bergambar) · `.tempa [id]` |
+| Bank (ATM) | `.buy atm` (beli Kartu ATM dulu) → `.setpin <4-6 angka>` (chat pribadi) → `.atm <Nomor Serial> <PIN>` (SN ada di `.profil` / `.kartu`) → Success, ATM terbuka 10 menit untuk `.deposit <n\|all>` · `.tarik <n\|all>` · `.transfer @tag <n>` — jumlah boleh `2k` / `1.5m`; salah PIN 5× = terkunci 10 menit |
+| Driver | `.ojol` (8 stamina, jeda 2 mnt) · `.gofood` (10, Lv 2+, 3 mnt) · `.gocar` (14, Lv 3+, 4 mnt) |
+| Sosial | `.kerja` (20 mnt) · `.misi` / `.misi claim` |
+| Lawan pemain (tag) | `.duel @tag [taruhan]` (5 mnt) · `.balap @tag [taruhan]` (5 mnt) · `.rampok @tag` (1 jam) · `.suitpvp @tag [taruhan]` |
+| Peringkat | `.leaderboard [kategori]` — `petualang` (default) · `uang` · `gold` · `bank` · `berlian` · `limit` · `level` · `kill` · `dungeon` · `orderan` · `duel` · `suit` · `balap` |
+| Status | `.rpg [@tag]` (kartu hero) · `.rpg help` |
+
+- **Stamina** pulih 1 per 45 detik, **HP** pulih 1 per 20 detik (dihitung otomatis). Naik level → HP pulih penuh + bonus gold.
+- Senjata/zirah menambah ATK/DEF; monster dan boss makin kuat seiring level; boss naga menjatuhkan Sisik Naga untuk perlengkapan terkuat.
+- **ATM**: gold di bank aman dari `.rampok`, berbunga **1%/hari** (maks 5.000, tertumpuk sampai 7 hari), limit bank naik 10.000 tiap level. Nomor kartu bank 16 digit tetap per pemain. Transfer antar-pemain kena biaya 2%.
+- **Misi harian**: kalahkan 5 monster, menambang 3x, memancing 3x → hadiah 500 Gold + 1 Berlian + Peti Kayu.
+- **Driver (ojol / gocar / gofood)**: tiap pesanan dapat rating 1–5 bintang yang mengatur bayaran, kadang tip, berlian, dan item (GoFood → ramuan, GoCar → peti, Ojol → minuman energi); 5x bintang 5 berturut-turut = bonus 300 Gold, tiap 10 pesanan dapat Peti Kayu, tiap 50 pesanan Peti Emas + 3 Berlian. Pesanan bisa batal atau kena macet/hujan.
+- **Suit PvP**: `.suitpvp @lawan [taruhan]` → lawan jawab di grup (`y`/`gas`/`yes`/`oke` terima, `n`/`gak`/`no`/`gamau` tolak) → bot kirim pilihan batu/gunting/kertas ke **chat pribadi** masing-masing → setelah keduanya memilih ada hitung mundur → "Congratulations......" + kartu hasil. Seri diulang sampai 3 ronde. Pemenang dapat taruhan + bonus gold + XP. `.suitpvp batal` membatalkan. Status permainan ada di `lib/suit.js` (di memori).
+- **Leaderboard**: papan peringkat berupa kartu bergambar, Top 10 per kategori plus peringkat pemanggil.
+- **Hanya di grup**: semua perintah RPG khusus grup. Pengecualian: `.setpin` dan pilihan suit lewat chat pribadi (supaya rahasia).
+- Perintah RPG tidak memotong limit harian.
+
+---
+
+## 🎴 Kartu Gambar
+
+Semua kartu dirender `lib/cards.js` (ffmpeg + Poppins) di atas latar `config/cards/*-bg.png`. Latar dibuat dengan skrip Python (sekali jalan, bukan oleh bot; butuh `pillow`):
+
+| Skrip | Menghasilkan |
+| :--- | :--- |
+| `python3 tools/build-register-bg.py [gambar]` | `register-bg.png` |
+| `python3 tools/build-card-bgs.py [gambar]` | `welcome-bg.png`, `goodbye-bg.png`, `levelup-bg.png` |
+| `python3 tools/build-rpg-assets.py [gambar]` | `profile-bg.png`, `hero-bg.png`, `grid-bg.png`, `result-bg.png`, `atm-bg.png` + ikon item `config/cards/rpg/*.png` |
+
+Ganti gambar karakter dengan menjalankan skrip memakai gambar lain (bawaan: `config/cards/register-source.jpg`). Posisi teks tiap kartu ada di `LAYOUT` dalam `lib/cards.js`. Uji kartu welcome/goodbye/levelup dengan `.cardtest`.
 
 ---
 

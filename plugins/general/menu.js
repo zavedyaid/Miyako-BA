@@ -1,10 +1,29 @@
 import { definePlugin } from "#lib/plugins";
 import { sendInteractive } from "#lib/interactive";
-import { clockTime, fakeQuoted, greeting, smallCaps as sc, uptime } from "#lib/utils";
+import { clockTime, greeting, smallCaps as sc, uptime } from "#lib/utils";
+
+// Baris kategori ditulis sama seperti baris lain: "emoji - Nama".
+const CATEGORY_LOOK = {
+  ai: ["🤖", "AI"],
+  downloader: ["📥", "Downloader"],
+  general: ["🏠", "General"],
+  group: ["👥", "Group"],
+  maker: ["🎨", "Maker"],
+  owner: ["👑", "Owner"],
+  rpg: ["⚔️", "RPG"],
+  search: ["🔍", "Search"],
+  stalker: ["🕵️", "Stalker"],
+  tools: ["🛠️", "Tools"],
+  wiki: ["📚", "Wiki"],
+};
+const categoryTitle = (cat) => {
+  const [icon, name] = CATEGORY_LOOK[cat] ?? ["📁", cat.charAt(0).toUpperCase() + cat.slice(1)];
+  return `${icon} - ${name}`;
+};
 
 /*
  * Satu pesan, satu tombol "List Menu". Di dalamnya:
- *   📂 Utama          → sub-list: Menu, Ping, Profil
+ *   📂 Utama          → sub-list: Menu, Ping, Profil, Script
  *   🗂️ Kategori       → sub-list: tiap kategori
  *   ✦ Semua Kategori  → baris ↩ langsung (di luar Kategori)
  *   🚀 Support        → sub-list: Donasi, Owner
@@ -68,6 +87,7 @@ export default definePlugin({
           { title: "📋 - Menu", id: `${pfx}menu` },
           { title: "🏓 - Ping", id: `${pfx}ping` },
           { title: "👤 - Profil", id: `${pfx}profil` },
+          { title: "📜 - Script", id: `${pfx}sc` },
         ],
       },
       {
@@ -76,7 +96,7 @@ export default definePlugin({
         select: true,
         rows: [
           ...[...categories].map(([cat, list]) => ({
-            title: `❖ - ${cat}`,
+            title: categoryTitle(cat),
             description: `${list.length} command`,
             id: `${pfx}menu ${cat}`,
           })),
@@ -94,7 +114,7 @@ export default definePlugin({
       },
     ];
 
-    const quoted = fakeQuoted.contact(config.name);
+    const quoted = await ctx.quote();
     const text = lines.join("\n").trim();
     // select → sub-list di dalam List Menu; selain itu → baris ↩ langsung. Semua dibungkus satu tombol.
     const buttons = groups.flatMap((g) =>

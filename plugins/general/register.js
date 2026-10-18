@@ -20,7 +20,7 @@ const register = definePlugin({
 
 const kartu = definePlugin({
   name: "kartu",
-  aliases: ["card", "mycard", "cekreg", "idcard"],
+  aliases: ["mycard", "cekreg", "idcard"],
   category: "general",
   description: "Lihat kartu register (kamu atau yang di-tag / di-reply)",
   usage: "kartu [@tag]",

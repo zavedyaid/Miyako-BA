@@ -15,6 +15,7 @@
   "social": {
     "website": "https://zavedya.id",
     "github": "https://github.com/ZavedyaID",
+    "repo": "https://github.com/zavedyaid/Miyako-BA",
     "group": "https://chat.whatsapp.com/HBsaNWf8BjnHyF0qn3zC65"
   },
   "sticker": {
@@ -37,7 +38,8 @@
     "cmdSuggest": true,
     "levelUpNotif": true,
     "ownerGreet": true,
-    "registerRequired": true
+    "registerRequired": true,
+    "cardChannelLabel": false
   },
   "promo": {
     "text": "Artificial Intelligence, The beginning of the robot era",

@@ -3,7 +3,7 @@ import yts from "yt-search";
 import { ApiError } from "#lib/api";
 import { sendInteractive } from "#lib/interactive";
 import { songs } from "#lib/songs";
-import { fakeQuoted, formatNumber, getBuffer, truncate } from "#lib/utils";
+import { formatNumber, getBuffer, truncate } from "#lib/utils";
 
 /*
  * Alur 1 dari 3:  .play <judul>
@@ -73,7 +73,7 @@ export default definePlugin({
         image,
         buttons: [{ type: "list", text: "Pilih Lagu", sections: [{ title: "Hasil pencarian", rows }] }],
         mentions: [ctx.senderId],
-        quoted: fakeQuoted.contact(config.name),
+        quoted: await ctx.quote(),
       });
       ctx.react("✅");
     } catch (err) {

@@ -82,19 +82,20 @@ def build(out, spec):
         w = rnd.choice([2, 2, 3, 4, 6]); d.rectangle((x, 944, x+w-1, 984), fill=(215, 232, 255, 210)); x += w + rnd.choice([3, 4, 5])
     Image.alpha_composite(c.convert("RGBA"), L).convert("RGB").save(out, optimize=True); print("OK", out)
 
-F = lambda *a: a
-build("config/cards/welcome-bg.png", dict(
-    flip=False, tint=(20, 40, 90), tint_amt=0.0, glass=(10, 18, 48), accent=(110, 215, 255), sub=(150, 195, 255),
-    title="WELCOME", subtitle="SELAMAT BERGABUNG  ·  MEMBER BARU", badge="NEW MEMBER", badge_w=250, seed=11,
-    fields=[F(490, 268, "NAMA", 1140), F(490, 398, "GRUP", 1140), F(490, 528, "TOTAL MEMBER", 700), F(730, 528, "BERGABUNG", 1140)],
-    box_y=708, message=["Semoga betah dan nyaman di sini ya!", "Jangan lupa baca deskripsi & aturan grup."]))
-build("config/cards/goodbye-bg.png", dict(
-    flip=True, tint=(90, 30, 50), tint_amt=0.22, glass=(40, 14, 34), accent=(255, 150, 160), sub=(255, 190, 200),
-    title="GOODBYE", subtitle="SAMPAI JUMPA  ·  TERIMA KASIH SUDAH BERGABUNG", badge="LEFT", badge_w=170, seed=22,
-    fields=[F(490, 268, "NAMA", 1140), F(490, 398, "DARI GRUP", 1140), F(490, 528, "SISA MEMBER", 700), F(730, 528, "KELUAR", 1140)],
-    box_y=708, message=["Terima kasih sudah pernah bersama kami.", "Sampai bertemu lagi di lain waktu!"]))
-build("config/cards/levelup-bg.png", dict(
-    flip=False, tint=(120, 80, 10), tint_amt=0.16, glass=(24, 18, 40), accent=(255, 205, 90), sub=(255, 225, 160),
-    title="LEVEL UP!", subtitle="SELAMAT  ·  KAMU NAIK LEVEL", badge="NEW LEVEL", badge_w=250, seed=33,
-    fields=[F(490, 268, "NAMA", 1140), F(490, 398, "SEBELUM", 700), F(730, 398, "SEKARANG", 1140), F(490, 528, "PROGRESS", 1140)],
-    track=(490, 600, 650, 28), box_y=708, message=["Mantap! Terus aktif untuk naik ke level berikutnya.", "Makin tinggi level, makin banyak keseruannya."]))
+if __name__ == "__main__":
+    F = lambda *a: a
+    build("config/cards/welcome-bg.png", dict(
+        flip=False, tint=(20, 40, 90), tint_amt=0.0, glass=(10, 18, 48), accent=(110, 215, 255), sub=(150, 195, 255),
+        title="WELCOME", subtitle="SELAMAT BERGABUNG  ·  MEMBER BARU", badge="NEW MEMBER", badge_w=250, seed=11,
+        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "GRUP", 1140), F(490, 528, "TOTAL MEMBER", 700), F(730, 528, "BERGABUNG", 1140)],
+        box_y=708, message=["Semoga betah dan nyaman di sini ya!", "Jangan lupa baca deskripsi & aturan grup."]))
+    build("config/cards/goodbye-bg.png", dict(
+        flip=True, tint=(90, 30, 50), tint_amt=0.22, glass=(40, 14, 34), accent=(255, 150, 160), sub=(255, 190, 200),
+        title="GOODBYE", subtitle="SAMPAI JUMPA  ·  TERIMA KASIH SUDAH BERGABUNG", badge="LEFT", badge_w=170, seed=22,
+        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "DARI GRUP", 1140), F(490, 528, "SISA MEMBER", 700), F(730, 528, "KELUAR", 1140)],
+        box_y=708, message=["Terima kasih sudah pernah bersama kami.", "Sampai bertemu lagi di lain waktu!"]))
+    build("config/cards/levelup-bg.png", dict(
+        flip=False, tint=(120, 80, 10), tint_amt=0.16, glass=(24, 18, 40), accent=(255, 205, 90), sub=(255, 225, 160),
+        title="LEVEL UP!", subtitle="SELAMAT  ·  KAMU NAIK LEVEL", badge="NEW LEVEL", badge_w=250, seed=33,
+        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "SEBELUM", 700), F(730, 398, "SEKARANG", 1140), F(490, 528, "PROGRESS", 1140)],
+        track=(490, 600, 650, 28), box_y=708, message=["Mantap! Terus aktif untuk naik ke level berikutnya.", "Makin tinggi level, makin banyak keseruannya."]))

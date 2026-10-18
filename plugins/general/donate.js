@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { definePlugin } from "#lib/plugins";
 import { deliver } from "#lib/interactive";
-import { fakeQuoted } from "#lib/utils";
 
 /*
  * Donasi = SATU pesan produk katalog WhatsApp (tombol "Lihat katalog" membuka halaman produk).
@@ -71,7 +70,7 @@ export default definePlugin({
         },
         businessOwnerJid: `${ownerNumber}@s.whatsapp.net`,
       },
-      { quoted: fakeQuoted.contact(config.name) },
+      { quoted: await ctx.quote() },
       "Katalog donasi",
     );
   },
