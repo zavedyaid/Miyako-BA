@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { logger } from "#lib/logger";
 import { getBuffer, sleep } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Pengolahan respons Pinterest ada di plugin ini (api.js hanya menyambung ke API).
@@ -62,8 +63,8 @@ export default definePlugin({
     // ".pin aesthetic wallpaper" atau ".pin aesthetic wallpaper | 8"
     const [query, rawCount] = (ctx.argsStr || ctx.quotedText || "").split("|").map((v) => v.trim());
     if (!query) {
-      return ctx.reply(`❌ Masukkan kata kunci.\nContoh: *${ctx.prefix}pinterest aesthetic wallpaper*\nJumlah gambar: *${ctx.prefix}pin aesthetic wallpaper | 8* (maks ${MAX_COUNT})`, {
-        preview: { title: "Pinterest", body: "Cari gambar" },
+      return ctx.reply(tl("src.pinterest.1", { prefix: ctx.pfx, prefix1: ctx.pfx, MAX_COUNT }), {
+        preview: { title: "Pinterest", body: tl("src.pinterest.2") },
       });
     }
 
@@ -84,7 +85,7 @@ export default definePlugin({
         }),
       );
       const images = downloads.filter((d) => d.status === "fulfilled").map((d) => d.value);
-      for (const d of downloads) if (d.status === "rejected") logger.warn(`Pinterest: gambar dilewati (${d.reason?.message})`);
+      for (const d of downloads) if (d.status === "rejected") logger.warn(`Pinterest: image skipped (${d.reason?.message})`);
       if (!images.length) throw new ApiError("Semua gambar gagal diunduh.");
 
       // Tanpa reply/fake quote supaya gambar beruntun menyatu di chat; teks hanya di gambar pertama.
@@ -94,13 +95,13 @@ export default definePlugin({
         if (sent >= count) break;
         try {
           await ctx.reply(
-            { image: image.buffer, ...(sent === 0 && { caption: `📌 *Pinterest* · ${count} gambar\n🔎 ${query}` }) },
+            { image: image.buffer, ...(sent === 0 && { caption: tl("src.pinterest.3", { count, query }) }) },
             { quoted: false },
           );
           sent++;
           if (sent < count) await sleep(700);
         } catch (err) {
-          logger.warn(`Pinterest: gagal mengirim gambar (${err.message})`);
+          logger.warn(`Pinterest: failed to send image (${err.message})`);
         }
       }
 

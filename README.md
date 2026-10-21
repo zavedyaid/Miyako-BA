@@ -684,3 +684,68 @@ Ganti gambar karakter dengan menjalankan skrip memakai gambar lain (bawaan: `con
 - Font kartu: **Poppins** © The Poppins Project Authors, lisensi [SIL OFL 1.1](https://openfontlicense.org) (`config/fonts/`).
 
 Project ini dilisensikan di bawah [MIT License (Modified)](./LICENSE) © ZavedyaID — **tidak boleh dijual atau dipakai untuk tujuan komersial tanpa izin tertulis dari pemegang hak cipta.**
+
+---
+
+## Pembaruan: bahasa, level bernama, backup, catur, smeme
+
+### Bahasa (English default, Indonesia tersedia)
+- Teks bot ada di `config/lang/en.json` dan `config/lang/id.json` (placeholder `{nama}`); di kode dipakai `t("kunci", { nama })` dari `lib/i18n.js`. Kunci yang belum ada di satu bahasa otomatis jatuh ke English.
+- `.lang` melihat bahasa · `.lang id` / `.lang en` (di **grup**: bahasa grup, khusus admin/owner · di **chat pribadi**: bahasamu) · `.lang reset` · `.lang default id` (owner, bahasa bawaan bot). Bawaan awal: `config.json → language`.
+- Kartu bergambar punya latar per bahasa: `config/cards/<nama>-bg.png` (Indonesia) dan `<nama>-bg.en.png` (English). Bot memilih sesuai bahasa pesan. Membuat ulang: `python3 tools/build-register-bg.py`, `build-card-bgs.py`, `build-rpg-assets.py` (tambahkan `CARD_LANG=en` untuk versi English; label ada di `tools/card_labels.py`).
+- **Cakupan**: semua balasan perintah (plugin group, owner, downloader, tools, search, stalker, wiki, maker, ai, RPG lengkap termasuk nama item/monster/misi lewat `lex.*`), daftar & balasan `.set`/`.on`, pesan error, limit, AFK, anti-link, welcome/goodbye, serta fitur baru sudah dua bahasa. **Masih Indonesia**: `description`/`usage` di metadata plugin lama (hanya terlihat oleh developer), kata kunci pemicu AutoAI (regex), dan isi persona AutoAI (instruksi ke model; bahasa balasan mengikuti bahasa chat).
+
+### Level bernama
+- `config/levels.json`: `maxLevel` (default 100; mau 1000 → ubah angka dan tambah tier) dan daftar `tiers` (`from`, `name`, `emoji`): Rookie 1–5, Novice 6–10, Apprentice 11–20, Adept 21–30, Veteran 31–40, Expert 41–50, Elite 51–60, Master 61–70, Grandmaster 71–80, Champion 81–90, Legend 91–99, Mythic 100.
+- Rank tampil di `.level`, `.profile`, `.menu`, kartu level up / register / profil, dan pengumuman naik rank. Di level maksimum EXP berhenti bertambah.
+
+### Backup
+- Owner: `.backup` (kirim zip ke chat pribadi) · `.backup full` (seluruh proyek + sesi WhatsApp, **tanpa `node_modules` & `.npm`**) · `.backup list` · `.backup get <no>` · `.backup auto on|off [jam]` · `.restore <no|nama|latest> yes` (atau reply ke .zip). Restore selalu membuat cadangan pengaman dulu.
+- Otomatis: `config.json → backup { auto, everyHours, keep, sendToOwner }`. File disimpan di `backups/` (masuk `.gitignore`). ZIP ditulis sendiri (tanpa dependensi).
+
+### Catur & stiker meme
+- `.chess @tag` → lawan jawab `y/gas/yes/oke` atau `n/gak/no/gamau` → langkah diketik langsung (`e4`, `Nf3`, `exd5`, `O-O`, `e8=Q`, `e2e4`). Aturan lengkap (rokade, en passant, promosi, skakmat, pat, remis), papan berupa **gambar biasa** (bukan link preview) yang dikirim ulang tiap langkah, papan lama dihapus otomatis. `.chess resign|draw|board|abort|stats`, `.leaderboard chess`. Hadiah menang +250 Gold & 60 XP bila tiap pemain ≥ 10 langkah. Mesin: `lib/chess.js` (diverifikasi dengan perft); sprite: `config/chess/` (dibuat `tools/build-chess-assets.py`).
+- `.smeme atas|bawah` (kirim / reply gambar, video, atau stiker) · `.smeme |bawah` untuk teks bawah saja.
+
+### Menu
+- `.menu` tetap pesan interaktif; `.menu <kategori>` dan `.menu all` sekarang balasan link preview. Tombol kategori ditulis seragam "emoji - Nama".
+
+## 🎮 Game, Hadiah & Redeem
+
+### Game HTML (rich / sheet)
+Game berjalan di WhatsApp lewat kartu pratinjau + tombol **Lihat perincian** (`sendHtmlApp()` di `lib/richhtml.js`). Selesai main → game memberi **kode** → kirim `.redeem <kode>`.
+
+| Command | Game | Hadiah |
+|---|---|---|
+| `.2048` | 2048 | Gold + XP dari skor, +2 Diamond bila capai ubin 2048 (maks 3 klaim/hari) |
+| `.dino` | Hyrox Dino Runner (gambar baru `config/games/dino.jpg`) | Gold + XP + Diamond dari skor ≥ 250 (maks 6/hari) |
+| `.abyss` | **Miyako Abyss** — dungeon roguelike 10 lantai: 3 kelas, 3 kesulitan, skill, jaga, ramuan, boss tiap 5 lantai, kartu relik, toko, animasi. Kekuatan awal mengikuti RPG-mu | Gold, XP, Diamond, peti, Limit bila menang (maks 6/hari) |
+| `.chessai` | **Catur single-player vs AI**, level 1–8 | Hadiah di **setiap level** + bonus clear pertama; remis 35% (maks 10/hari) |
+| `.chess @lawan` | Catur PvP — **gambar papan biasa**, dikirim baru tiap langkah (yang lama dihapus) | Menang 250 Gold + 60 XP (+peluang peti), remis 50 Gold + 20 XP |
+
+**Anti-curang:** 2048, Abyss, dan Catur AI **diputar ulang di bot** dengan mesin yang sama (`config/games/engine/*.js`, juga dipakai di sheet) — skor tidak dipercaya dari klien. Catur AI deterministik (kedalaman tetap + batas node + RNG ber-seed), jadi tiap langkah AI ikut diverifikasi (di worker thread). Dino tidak bisa diputar ulang → kode ditandatangani kunci sesi + skor dibatasi terhadap waktu nyata. Kode berlaku 3 jam, satu kode = satu klaim.
+
+Aset: banner dibuat `python3 tools/make-dino-banner.py` & `python3 tools/make-game-banners.py`. Game baru: tambah `config/games/<nama>.html` + plugin tipis, daftarkan verifier di `lib/gamecodes.js`.
+
+### `.redeem` — semua game + hadiah admin
+`.redeem <kode>` menukar kode game **dan** kode hadiah admin (`.klaim2048` dihapus).
+
+Owner membuat kode hadiah:
+```
+.createredeem [KODE] gold=5000 diamond=10 limit=50 premium=7d xp=500 exp=300 level=1 item=petiemas:2 max=100 ttl=7d note=Event
+.listredeem [KODE]    .delredeem <KODE>
+```
+Tanpa `KODE` → acak (`MIYAKO-XXXXXXXX`). `premium` = hari atau `perm`; `max` = kuota pemakai (0 = bebas); `ttl` = masa berlaku (`30m`, `12h`, `7d`). Data di `database/redeem.json`.
+
+### RPG: `.give`, `.cheat`, `.set`
+- `.give @tag gold 500` · `.give @tag potionhp 3` · `.give @tag limit 5` — pindahkan dari tasmu (kartu unik seperti ATM tidak bisa). **Owner**: gratis & bebas, mis. `.give @tag gold=100k premium=30d level=5 item=petiemas:3`.
+- `.cheat [@tag] [all|level|gold|diamond|inv|limit|premium|stamina|reset]` (owner) — level tertinggi (bot 100 & RPG 100), gold 999.999.999, inventory penuh (semua item x99), dst.
+- `.set <limit|gold|diamond|bank|level|rpglevel|exp|xp|hp|stamina|premium> [@tag] <angka|+n|-n|max>` (owner), mis. `.set gold @tag 50000`, `.set limit +100`, `.set premium @tag perm`.
+
+### Anti-spam
+`.on antispam` (grup, bot admin): pesan banjir (≥6 pesan/8 dtk atau teks sama ≥4×/25 dtk) **dihapus otomatis**, peringatan, lalu kick di peringatan ke-3. Di catur: pesan langkah & balasan error juga dihapus otomatis (`features.chessCleanChat=false` untuk mematikan).
+
+### Menu & leaderboard
+- Baris pilihan `.menu` kini punya **deskripsi**, total fitur di sisi kanan (`header`), dan lencana hijau **Popular** (`highlight_label`) untuk 3 kategori paling sering dipakai.
+- Leaderboard memakai **foto profil** pemain (bukan ikon bintang); tanpa foto → lingkaran berwarna + huruf awal. Papan baru: Dino, Abyss, Catur vs AI, 2048.
+- Saran salah ketik & menu hanya menampilkan nama command utama, bukan alias.

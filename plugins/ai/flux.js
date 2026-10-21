@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, mediaSource } from "#lib/extract";
+import { t as tl } from "#lib/i18n";
 
 // GET /ai/flux-image?prompt=…  → gambar (link atau data:image/…;base64)
 export default definePlugin({
@@ -13,8 +14,8 @@ export default definePlugin({
   async run({ ctx }) {
     const prompt = ctx.argsStr || ctx.quotedText;
     if (!prompt) {
-      return ctx.reply(`❌ Tulis deskripsi gambar.\nContoh: *${ctx.prefix}flux kucing astronaut di bulan*`, {
-        preview: { title: "FLUX", body: "Buat gambar dari teks" },
+      return ctx.reply(tl("ai.flux.1", { prefix: ctx.pfx }), {
+        preview: { title: "FLUX", body: tl("ai.flux.2") },
       });
     }
 

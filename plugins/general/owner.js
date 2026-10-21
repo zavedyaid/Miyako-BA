@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { t as tl } from "#lib/i18n";
 
 const digits = (value) => String(value ?? "").replace(/\D/g, "");
 
@@ -9,7 +10,7 @@ export default definePlugin({
   description: "Kirim kontak developer bot",
   async run({ ctx, config }) {
     const numbers = (config.ownerNumbers?.length ? config.ownerNumbers : [config.number]).map(digits).filter(Boolean);
-    if (!numbers.length) return ctx.reply("❌ Nomor owner belum diatur di config.json.");
+    if (!numbers.length) return ctx.reply(tl("gen.owner.1"));
 
     const contacts = numbers.map((number, i) => {
       const name = i === 0 ? config.owner : `${config.owner} ${i + 1}`;

@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { audioMime, collectMedia, mediaSource } from "#lib/extract";
+import { t as tl } from "#lib/i18n";
 
 // GET /downloader/rednote?url=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/downloader/rednote";
@@ -16,7 +17,7 @@ export default definePlugin({
   async run({ ctx }) {
     const url = ctx.argsStr.match(LINK)?.[0] ?? ctx.quotedText?.match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Kirim link RedNote.\nContoh: *${ctx.prefix}rednote https://www.xiaohongshu.com/xxxx*`, {
+      return ctx.reply(tl("dl.rednote.1", { prefix: ctx.pfx }), {
         preview: { title: "RedNote", body: "Downloader" },
       });
     }

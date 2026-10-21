@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { cardPayload, checkCards, fetchAvatar, renderCard } from "#lib/cards";
 import { db } from "#lib/database";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Uji kartu welcome / goodbye / level-up memakai data kamu sendiri — berguna bila kartu tidak muncul.
@@ -18,10 +19,10 @@ export default definePlugin({
   access: { owner: true },
   async run({ sock, ctx, group }) {
     const kind = (ctx.args[0] ?? "welcome").toLowerCase();
-    if (!KINDS.includes(kind)) return ctx.reply(`❌ Pilih: ${KINDS.join(", ")}\nContoh: *${ctx.prefix}cardtest welcome*`);
+    if (!KINDS.includes(kind)) return ctx.reply(tl("own.cardtest.1", { v: KINDS.join(", "), prefix: ctx.pfx }));
 
     const env = await checkCards();
-    if (!env.ok) return ctx.reply(`❌ Kartu tidak bisa dirender di server ini:\n${env.reason}`, { preview: false });
+    if (!env.ok) return ctx.reply(tl("own.cardtest.2", { reason: env.reason }), { preview: false });
 
     ctx.react("⏳");
     const meta = ctx.isGroup ? (await group().catch(() => ({}))).meta : null;
@@ -32,7 +33,7 @@ export default definePlugin({
       card = await renderCard(kind, { ...data, oldLevel: 12, newLevel: 13, ratio: 0.42 });
     } catch (err) {
       ctx.react("❌");
-      return ctx.reply(`❌ Render gagal:\n${err.message}`, { preview: false });
+      return ctx.reply(tl("own.cardtest.3", { message: err.message }), { preview: false });
     }
 
     const style = db.settings.cardStyle ?? "preview";
@@ -42,7 +43,7 @@ export default definePlugin({
       ctx.react("✅");
     } catch (err) {
       ctx.react("❌");
-      await ctx.reply(`❌ Kartu berhasil dirender tapi gagal dikirim (gaya ${style}):\n${err.message}\n💡 Coba: ${ctx.prefix}set owner cardstyle ${style === "preview" ? "image" : "preview"}`, { preview: false });
+      await ctx.reply(tl("own.cardtest.4", { style, message: err.message, prefix: ctx.pfx, v: style === "preview" ? "image" : "preview" }), { preview: false });
     }
   },
 });

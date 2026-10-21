@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /search/lyrics?artist=…&title=…  (keduanya wajib)
 export default definePlugin({
@@ -15,8 +16,8 @@ export default definePlugin({
     const [artist, ...rest] = (input.includes("|") ? input.split("|") : input.split(/\s[-–—]\s/)).map((v) => v.trim());
     const title = rest.join(" - ").trim();
     if (!artist || !title) {
-      return ctx.reply(`❌ Tulis artis dan judul.\nContoh: *${ctx.prefix}lirik Virgoun | Surat Cinta Untuk Starla*`, {
-        preview: { title: "Lirik", body: "Cari lirik lagu" },
+      return ctx.reply(tl("src.lirik.1", { prefix: ctx.pfx }), {
+        preview: { title: "Lirik", body: tl("src.lirik.2") },
       });
     }
 

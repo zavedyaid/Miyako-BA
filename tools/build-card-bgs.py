@@ -7,6 +7,7 @@ Butuh: pillow
 """
 import sys, random
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageChops
+from card_labels import tr, out_path
 
 W, H = 1920, 1080
 SRC = sys.argv[1] if len(sys.argv) > 1 else "config/cards/register-source.jpg"
@@ -76,7 +77,7 @@ def build(out, spec):
     if spec.get("track"):  # jalur bar progres
         x, y, w, h = spec["track"]
         d.rounded_rectangle((x+dx, y, x+dx+w, y+h), radius=h//2, fill=(255, 255, 255, 40), outline=(190, 220, 255, 110), width=2)
-    track(d, (132+dx, 954), "Kartu diterbitkan otomatis oleh Miyako - BA  ·  zavedya.id", font(MED, 19), (150, 185, 235, 200), 1)
+    track(d, (132+dx, 954), tr("Kartu diterbitkan otomatis oleh Miyako - BA  ·  zavedya.id"), font(MED, 19), (150, 185, 235, 200), 1)
     rnd = random.Random(spec["seed"]); x = 905 + dx
     while x < 1138 + dx:
         w = rnd.choice([2, 2, 3, 4, 6]); d.rectangle((x, 944, x+w-1, 984), fill=(215, 232, 255, 210)); x += w + rnd.choice([3, 4, 5])
@@ -84,18 +85,18 @@ def build(out, spec):
 
 if __name__ == "__main__":
     F = lambda *a: a
-    build("config/cards/welcome-bg.png", dict(
+    build(out_path("config/cards/welcome-bg.png"), dict(
         flip=False, tint=(20, 40, 90), tint_amt=0.0, glass=(10, 18, 48), accent=(110, 215, 255), sub=(150, 195, 255),
-        title="WELCOME", subtitle="SELAMAT BERGABUNG  ·  MEMBER BARU", badge="NEW MEMBER", badge_w=250, seed=11,
-        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "GRUP", 1140), F(490, 528, "TOTAL MEMBER", 700), F(730, 528, "BERGABUNG", 1140)],
-        box_y=708, message=["Semoga betah dan nyaman di sini ya!", "Jangan lupa baca deskripsi & aturan grup."]))
-    build("config/cards/goodbye-bg.png", dict(
+        title="WELCOME", subtitle=tr("SELAMAT BERGABUNG  ·  MEMBER BARU"), badge="NEW MEMBER", badge_w=250, seed=11,
+        fields=[F(490, 268, tr("NAMA"), 1140), F(490, 398, tr("GRUP"), 1140), F(490, 528, "TOTAL MEMBER", 700), F(730, 528, tr("BERGABUNG"), 1140)],
+        box_y=708, message=[tr("Semoga betah dan nyaman di sini ya!"), tr("Jangan lupa baca deskripsi & aturan grup.")]))
+    build(out_path("config/cards/goodbye-bg.png"), dict(
         flip=True, tint=(90, 30, 50), tint_amt=0.22, glass=(40, 14, 34), accent=(255, 150, 160), sub=(255, 190, 200),
-        title="GOODBYE", subtitle="SAMPAI JUMPA  ·  TERIMA KASIH SUDAH BERGABUNG", badge="LEFT", badge_w=170, seed=22,
-        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "DARI GRUP", 1140), F(490, 528, "SISA MEMBER", 700), F(730, 528, "KELUAR", 1140)],
-        box_y=708, message=["Terima kasih sudah pernah bersama kami.", "Sampai bertemu lagi di lain waktu!"]))
-    build("config/cards/levelup-bg.png", dict(
+        title="GOODBYE", subtitle=tr("SAMPAI JUMPA  ·  TERIMA KASIH SUDAH BERGABUNG"), badge="LEFT", badge_w=170, seed=22,
+        fields=[F(490, 268, tr("NAMA"), 1140), F(490, 398, tr("DARI GRUP"), 1140), F(490, 528, tr("SISA MEMBER"), 700), F(730, 528, tr("KELUAR"), 1140)],
+        box_y=708, message=[tr("Terima kasih sudah pernah bersama kami."), tr("Sampai bertemu lagi di lain waktu!")]))
+    build(out_path("config/cards/levelup-bg.png"), dict(
         flip=False, tint=(120, 80, 10), tint_amt=0.16, glass=(24, 18, 40), accent=(255, 205, 90), sub=(255, 225, 160),
-        title="LEVEL UP!", subtitle="SELAMAT  ·  KAMU NAIK LEVEL", badge="NEW LEVEL", badge_w=250, seed=33,
-        fields=[F(490, 268, "NAMA", 1140), F(490, 398, "SEBELUM", 700), F(730, 398, "SEKARANG", 1140), F(490, 528, "PROGRESS", 1140)],
-        track=(490, 600, 650, 28), box_y=708, message=["Mantap! Terus aktif untuk naik ke level berikutnya.", "Makin tinggi level, makin banyak keseruannya."]))
+        title="LEVEL UP!", subtitle=tr("SELAMAT  ·  KAMU NAIK LEVEL"), badge="NEW LEVEL", badge_w=250, seed=33,
+        fields=[F(490, 268, tr("NAMA"), 1140), F(490, 398, tr("SEBELUM"), 700), F(730, 398, tr("SEKARANG"), 1140), F(490, 528, "PROGRESS", 1140)],
+        track=(490, 600, 650, 28), box_y=708, message=[tr("Mantap! Terus aktif untuk naik ke level berikutnya."), tr("Makin tinggi level, makin banyak keseruannya.")]))

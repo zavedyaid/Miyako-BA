@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { makeSticker, withExif } from "#lib/sticker";
+import { t as tl } from "#lib/i18n";
 
 const MAX_VIDEO = 15 * 1024 * 1024;
 
@@ -11,26 +12,26 @@ export default definePlugin({
   limit: 1,
   usage: "s [fit] [packname|author] (kirim atau reply gambar/video)",
   async run({ ctx, config }) {
-    const pfx = ctx.prefix;
+    const pfx = ctx.pfx;
     const media = await ctx.fetchMedia();
 
     if (!media || !["image", "video", "sticker"].includes(media.kind)) {
       return ctx.reply(
         [
           "🖼️ *STIKER*",
-          "Kirim atau reply gambar / video / GIF dengan caption:",
+          tl("mk.sticker.1"),
           `› *${pfx}s*`,
           `› *${pfx}s packname|author*`,
-          `› *${pfx}s fit* (tanpa crop, sisi kosong transparan)`,
+          tl("mk2.sticker.1", { pfx }),
           "",
-          "Hasil 1:1 (crop tengah). Video maksimal ±8 detik.",
+          tl("mk.sticker.2"),
         ].join("\n"),
-        { preview: { title: "Stiker Maker", body: "Kirim / reply gambar atau video" } },
+        { preview: { title: "Stiker Maker", body: tl("mk.sticker.3") } },
       );
     }
 
     if (media.kind === "video" && media.buffer.length > MAX_VIDEO) {
-      return ctx.reply("❌ Video terlalu besar (maks 15 MB).");
+      return ctx.reply(tl("mk.sticker.4"));
     }
 
     const fit = /^(fit|full)(\s|$)/i.test(ctx.argsStr);

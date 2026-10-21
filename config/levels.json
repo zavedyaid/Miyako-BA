@@ -1,0 +1,17 @@
+{
+  "maxLevel": 100,
+  "tiers": [
+    { "from": 1,   "name": "Rookie",      "emoji": "🌱" },
+    { "from": 6,   "name": "Novice",      "emoji": "🌿" },
+    { "from": 11,  "name": "Apprentice",  "emoji": "📘" },
+    { "from": 21,  "name": "Adept",       "emoji": "🔰" },
+    { "from": 31,  "name": "Veteran",     "emoji": "🛡️" },
+    { "from": 41,  "name": "Expert",      "emoji": "⚔️" },
+    { "from": 51,  "name": "Elite",       "emoji": "💠" },
+    { "from": 61,  "name": "Master",      "emoji": "🔮" },
+    { "from": 71,  "name": "Grandmaster", "emoji": "👑" },
+    { "from": 81,  "name": "Champion",    "emoji": "🏆" },
+    { "from": 91,  "name": "Legend",      "emoji": "🌟" },
+    { "from": 100, "name": "Mythic",      "emoji": "🐉" }
+  ]
+}

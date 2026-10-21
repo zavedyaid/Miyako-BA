@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import * as game from "#lib/rpg";
 import { sendResult } from "#lib/rpgui";
 import { duration } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 const daily = definePlugin({
   name: "daily",
@@ -13,7 +14,7 @@ const daily = definePlugin({
   async run(env) {
     const r = game.getRpg(env.user);
     const res = game.claimDaily(r);
-    if (!res) return env.ctx.reply("🎁 Hadiah harian sudah kamu ambil hari ini. Kembali lagi besok!");
+    if (!res) return env.ctx.reply(tl("rpg.reward.1"));
     env.db.save("users");
     await sendResult(env, r, res);
   },
@@ -29,7 +30,7 @@ const weekly = definePlugin({
   async run(env) {
     const r = game.getRpg(env.user);
     const res = game.claimWeekly(r);
-    if (!res) return env.ctx.reply(`🎁 Hadiah mingguan bisa diklaim lagi dalam *${duration(game.WEEK - (Date.now() - r.weekly))}*.`);
+    if (!res) return env.ctx.reply(tl("rpg.reward.2", { v: duration(game.WEEK - (Date.now() - r.weekly)) }));
     env.db.save("users");
     await sendResult(env, r, res);
   },
@@ -46,14 +47,14 @@ const crate = definePlugin({
     const { ctx, user } = env;
     const r = game.getRpg(user);
     const id = game.findItem(ctx.args[0] ?? "");
-    if (!id || !game.isCrate(id)) return ctx.reply(`📦 Peti apa? Contoh: *${ctx.prefix}peti petikayu*\nPeti yang kamu punya: ${["petikayu", "petiemas", "petidiamond"].filter((x) => game.count(r, x)).map((x) => `${x} x${game.count(r, x)}`).join(", ") || "-"}`);
+    if (!id || !game.isCrate(id)) return ctx.reply(tl("rpg.reward.3", { prefix: ctx.pfx, v: ["petikayu", "petiemas", "petidiamond"].filter((x) => game.count(r, x)).map((x) => `${x} x${game.count(r, x)}`).join(", ") || "-" }));
     const n = Math.min(Math.max(1, Number(ctx.args[1]) || 1), 10);
-    if (game.count(r, id) < n) return ctx.reply(`📦 ${game.ITEMS[id].name} kamu tidak cukup (punya ${game.count(r, id)}).`);
+    if (game.count(r, id) < n) return ctx.reply(tl("rpg.reward.4", { v: game.ITEMS[id].name, v1: game.count(r, id) }));
     const outs = [];
     for (let i = 0; i < n; i++) { game.takeItem(r, id, 1); outs.push(game.openCrate(r, id)); }
     env.db.save("users");
     const rows = game.crateRows(outs);
-    await sendResult(env, r, { title: "BUKA PETI", subtitle: `${game.ITEMS[id].name} x${n}`, badge: "TERBUKA", accent: "0xffd566", rows, ok: true });
+    await sendResult(env, r, { title: tl("rpg2.reward.1"), subtitle: `${game.ITEMS[id].name} x${n}`, badge: "TERBUKA", accent: "0xffd566", rows, ok: true });
   },
 });
 

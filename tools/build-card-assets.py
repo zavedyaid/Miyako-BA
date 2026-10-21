@@ -98,9 +98,6 @@ cv2.imwrite(f"{OUT}/levelup-bg.png", l)
 
 # ── mask & sprite ──────────────────────────────────────────────────────────
 S = 512
-sq = Image.new("L", (S * 4, S * 4), 0)
-ImageDraw.Draw(sq).rounded_rectangle((0, 0, S * 4 - 1, S * 4 - 1), radius=int(S * 4 * 0.12), fill=255)
-sq.resize((S, S), Image.LANCZOS).save(f"{OUT}/mask-square.png")
 ci = Image.new("L", (S * 4, S * 4), 0)
 ImageDraw.Draw(ci).ellipse((0, 0, S * 4 - 1, S * 4 - 1), fill=255)
 ci.resize((S, S), Image.LANCZOS).save(f"{OUT}/mask-circle.png")

@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { STATUS_MAX_SECONDS, audioToOpus, audioToVideo } from "#lib/media";
 import { sendGroupStatusMedia } from "#lib/groupstatus";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Posting status grup (Group Status). Hanya admin grup & owner.
@@ -47,12 +48,12 @@ export default definePlugin({
           note = `\n🎵 Audio dikirim utuh sebagai voice note${opus.seconds ? ` (${Math.floor(opus.seconds / 60)}:${String(opus.seconds % 60).padStart(2, "0")})` : ""}.`;
         }
       } else {
-        return ctx.reply("❌ Status grup hanya mendukung teks, gambar, video, dan audio.");
+        return ctx.reply(tl("grp.swgc.1"));
       }
     } else if (text) {
       payload = { text };
     } else {
-      return ctx.reply(`❌ Tulis teks atau kirim / reply media.\nContoh: *${ctx.prefix}swgc halo semua*`);
+      return ctx.reply(tl("grp.swgc.2", { prefix: ctx.pfx }));
     }
 
     ctx.react("⏳");
@@ -64,7 +65,7 @@ export default definePlugin({
         await ctx.reply({ ...legacyPayload, groupStatus: true }, { quoted: false });
       }
       ctx.react("✅");
-      await ctx.reply(`✅ Status grup terkirim.${note}${spec && legacy ? "\n⚙️ Jalur lama (-s)." : ""}`);
+      await ctx.reply(tl("grp.swgc.3", { note, v: spec && legacy ? tl("grp2.swgc.1") : "" }));
     } catch (err) {
       ctx.react("❌");
       throw err;

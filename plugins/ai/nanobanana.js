@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, mediaSource } from "#lib/extract";
 import { uploadImage } from "#lib/upload";
+import { t as tl } from "#lib/i18n";
 
 // POST /ai/nanobanana  body JSON { prompt, imageUrl }  (ubah nama field di sini bila API memakai nama lain)
 const LINK = /https?:\/\/\S+/i;
@@ -17,8 +18,8 @@ export default definePlugin({
     const link = ctx.argsStr.match(LINK)?.[0];
     const prompt = ctx.argsStr.replace(LINK, "").trim();
     if (!prompt) {
-      return ctx.reply(`❌ Kirim / reply gambar dengan perintah edit.\nContoh: *${ctx.prefix}nanobanana ubah jadi gaya anime*`, {
-        preview: { title: "Nano Banana", body: "Edit gambar dengan AI" },
+      return ctx.reply(tl("ai.nanobanana.1", { prefix: ctx.pfx }), {
+        preview: { title: "Nano Banana", body: tl("ai.nanobanana.2") },
       });
     }
 

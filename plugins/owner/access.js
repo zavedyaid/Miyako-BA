@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { config, isOwnerIdentity } from "#lib/config";
 import { parseDays, tag, targetsOf } from "#lib/targets";
 import { formatNumber, numberOf } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Kelola hak akses (khusus owner):
@@ -15,7 +16,7 @@ const digits = (jid) => numberOf(jid).replace(/\D/g, "");
 const isConfigOwner = (jid) => isOwnerIdentity({ pn: jid, lid: jid });
 
 const needTarget = (ctx, name, extra = "") =>
-  ctx.reply(`❌ Tag orangnya, reply pesannya, atau tulis nomornya.\nContoh: *${ctx.prefix}${name} @user${extra}*`);
+  ctx.reply(tl("own.access.1", { prefix: ctx.pfx, name, extra }));
 
 const addowner = definePlugin({
   name: "addowner",
@@ -148,7 +149,7 @@ const listprem = definePlugin({
   access: { owner: true },
   async run({ ctx, db }) {
     const active = Object.entries(db.users).filter(([, u]) => u.premium?.on && (!u.premium.expiredAt || u.premium.expiredAt > Date.now()));
-    if (!active.length) return ctx.reply("💎 Belum ada pengguna premium.");
+    if (!active.length) return ctx.reply(tl("own.access.2"));
 
     const lines = active.map(([jid, u], i) => {
       const left = u.premium.expiredAt ? `${Math.ceil((u.premium.expiredAt - Date.now()) / DAY)} hari lagi` : "permanen";

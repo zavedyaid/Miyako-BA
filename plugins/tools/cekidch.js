@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Cek ID & detail lengkap channel WhatsApp.
@@ -64,8 +65,8 @@ export default definePlugin({
   async run({ sock, ctx }) {
     const source = sourceOf(ctx);
     if (!source) {
-      return ctx.reply(`❌ Kirim link channel atau JID-nya.\nContoh: *${ctx.prefix}cekidch https://whatsapp.com/channel/0029Vaxxxx*\nBisa juga reply pesan yang diteruskan dari channel.`, {
-        preview: { title: "Cek ID Channel", body: "Detail lengkap channel WhatsApp" },
+      return ctx.reply(tl("tool.cekidch.1", { prefix: ctx.pfx }), {
+        preview: { title: tl("tool2.cekidch.1"), body: "Detail lengkap channel WhatsApp" },
       });
     }
 

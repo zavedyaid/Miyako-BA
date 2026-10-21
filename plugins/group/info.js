@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { groups } from "#lib/groups";
 import { mentionJid } from "#lib/targets";
 import { numberOf } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Buka / tutup grup, link undangan, info grup, daftar admin.
@@ -17,7 +18,7 @@ const open = definePlugin({
   async run({ sock, ctx }) {
     groups.silence(ctx.chatId); // cegah pengumuman dobel dari event groups.update
     await sock.groupSettingUpdate(ctx.chatId, "not_announcement");
-    await ctx.reply("🔓 Grup *dibuka* — semua anggota bisa mengirim pesan.");
+    await ctx.reply(tl("grp.info.1"));
   },
 });
 
@@ -30,7 +31,7 @@ const close = definePlugin({
   async run({ sock, ctx }) {
     groups.silence(ctx.chatId);
     await sock.groupSettingUpdate(ctx.chatId, "announcement");
-    await ctx.reply("🔒 Grup *ditutup* — hanya admin yang bisa mengirim pesan.");
+    await ctx.reply(tl("grp.info.2"));
   },
 });
 
@@ -43,7 +44,7 @@ const linkgc = definePlugin({
   async run({ sock, ctx, group }) {
     const code = await sock.groupInviteCode(ctx.chatId);
     const { meta } = await group();
-    await ctx.reply(`🔗 *${meta?.subject ?? "Grup"}*\n${INVITE}${code}`);
+    await ctx.reply(`🔗 *${meta?.subject ?? tl("grp.info.3")}*\n${INVITE}${code}`);
   },
 });
 
@@ -55,7 +56,7 @@ const revoke = definePlugin({
   access: { group: true, admin: true, botAdmin: true },
   async run({ sock, ctx }) {
     const code = await sock.groupRevokeInvite(ctx.chatId);
-    await ctx.reply(`♻️ Link grup direset.\n🔗 ${INVITE}${code}`);
+    await ctx.reply(tl("grp.info.4", { INVITE, code }));
   },
 });
 
@@ -67,7 +68,7 @@ const infogc = definePlugin({
   access: { group: true },
   async run({ ctx, group, chat }) {
     const { meta, isBotAdmin } = await group();
-    if (!meta) return ctx.reply("❌ Gagal membaca info grup.");
+    if (!meta) return ctx.reply(tl("grp.info.5"));
 
     const admins = meta.participants.filter((p) => p.admin);
     const owner = meta.owner ?? meta.subjectOwner;
@@ -108,7 +109,7 @@ const listadmin = definePlugin({
   async run({ ctx, group }) {
     const { meta } = await group();
     const admins = meta?.participants?.filter((p) => p.admin) ?? [];
-    if (!admins.length) return ctx.reply("❌ Tidak ada data admin.");
+    if (!admins.length) return ctx.reply(tl("grp.info.6"));
 
     const lines = admins.map((p, i) => `${i + 1}. @${numberOf(mentionJid(p))}${p.admin === "superadmin" ? " 👑" : ""}`);
     await ctx.reply(`🛡️ *Admin ${meta.subject}* (${admins.length})\n\n${lines.join("\n")}`, {

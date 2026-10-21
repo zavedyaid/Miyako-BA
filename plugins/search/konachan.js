@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, listOf } from "#lib/extract";
 import { sleep } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /search/konachan?query=…   (gambar anime; ubah nama parameter di sini bila perlu)
 const PATH = "/search/konachan";
@@ -18,8 +19,8 @@ export default definePlugin({
   async run({ ctx }) {
     const [query, rawCount] = (ctx.argsStr || ctx.quotedText || "").split("|").map((v) => v.trim());
     if (!query) {
-      return ctx.reply(`❌ Masukkan tag.\nContoh: *${ctx.prefix}konachan hatsune_miku | 5* (maks ${MAX_COUNT})`, {
-        preview: { title: "Konachan", body: "Gambar anime" },
+      return ctx.reply(tl("src.konachan.1", { prefix: ctx.pfx, MAX_COUNT }), {
+        preview: { title: "Konachan", body: tl("src.konachan.2") },
       });
     }
 

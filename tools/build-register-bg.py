@@ -8,10 +8,11 @@ Butuh: pillow
 """
 import sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageChops
+from card_labels import tr, out_path
 
 W, H = 1920, 1080
 SRC = sys.argv[1] if len(sys.argv) > 1 else "config/cards/register-source.jpg"
-OUT = "config/cards/register-bg.png"
+OUT = out_path("config/cards/register-bg.png")
 BOLD = "config/fonts/Poppins-Bold.ttf"
 MED = "config/fonts/Poppins-Medium.ttf"
 
@@ -100,17 +101,17 @@ def field(x, y, label, x2):
     track(d, (x, y), label, LAB, LABC, 3)
     d.line((x, y + 96, x2, y + 96), fill=(170, 205, 255, 70), width=2)
 
-field(490, 268, "NAMA", 1140)
-field(490, 398, "UMUR", 700)
+field(490, 268, tr("NAMA"), 1140)
+field(490, 398, tr("UMUR"), 700)
 field(730, 398, "GENDER", 1140)
-field(490, 528, "NO. WHATSAPP", 1140)
+field(490, 528, tr("NO. WHATSAPP"), 1140)
 field(130, 708, "SERIAL NUMBER", 560)
-field(620, 708, "NO. KARTU", 1140)
-field(130, 828, "TERDAFTAR", 560)
+field(620, 708, tr("NO. KARTU"), 1140)
+field(130, 828, tr("TERDAFTAR"), 560)
 field(620, 828, "LEVEL", 1140)
 
 # kaki kartu: teks kecil + barcode hias
-track(d, (132, 954), "Kartu diterbitkan otomatis oleh Miyako - BA  ·  zavedya.id", font(MED, 19), (150, 185, 235, 200), 1)
+track(d, (132, 954), tr("Kartu diterbitkan otomatis oleh Miyako - BA  ·  zavedya.id"), font(MED, 19), (150, 185, 235, 200), 1)
 import random
 rnd = random.Random(20260418)
 x = 905

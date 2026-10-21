@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { bufferThumbnail, getBuffer } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /downloader/youtube?url=…  → { title, duration, thumbnail, downloads: [{ quality, format, audioOnly, url }] }
 const LINK = /https?:\/\/\S+/i;
@@ -17,8 +18,8 @@ export default definePlugin({
   async run({ ctx }) {
     const url = (ctx.argsStr || ctx.quotedText || "").match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Kirim link YouTube.\nContoh: *${ctx.prefix}ytmp3 https://youtu.be/xxxx*`, {
-        preview: { title: "YouTube MP3", body: "Unduh audio" },
+      return ctx.reply(tl("dl.ytmp3.1", { prefix: ctx.pfx }), {
+        preview: { title: "YouTube MP3", body: tl("dl2.ytmp3.1") },
       });
     }
 

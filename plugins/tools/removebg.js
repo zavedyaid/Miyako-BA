@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { uploadImage } from "#lib/upload";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Hapus background gambar. API: GET /v1/tools/removebg?imageUrl=<link gambar>
@@ -31,9 +32,9 @@ export default definePlugin({
 
     if (!imageUrl) {
       return ctx.reply(
-        `🖼️ Kirim gambar dengan caption *${ctx.prefix}removebg*, atau reply gambar dengan *${ctx.prefix}removebg*.\n_Link gambar juga bisa: ${ctx.prefix}removebg https://example.com/foto.jpg_`,
+        tl("tool.removebg.1", { prefix: ctx.pfx, prefix1: ctx.pfx, prefix2: ctx.pfx }),
         {
-          preview: { title: "Remove BG", body: "Hapus background gambar" },
+          preview: { title: "Remove BG", body: tl("tool.removebg.2") },
         },
       );
     }
@@ -48,7 +49,7 @@ export default definePlugin({
       const inline = result.match(/^data:(image\/[\w.+-]+);base64,(.+)$/s);
       const file = inline ? Buffer.from(inline[2], "base64") : { url: result };
 
-      await ctx.reply({ document: file, mimetype: inline?.[1] ?? "image/png", fileName: "removebg.png", caption: "✅ Background dihapus" });
+      await ctx.reply({ document: file, mimetype: inline?.[1] ?? "image/png", fileName: "removebg.png", caption: tl("tool2.removebg.1") });
       ctx.react("✅");
     } catch (err) {
       ctx.react("❌");

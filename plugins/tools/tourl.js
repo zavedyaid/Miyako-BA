@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { MAX_UPLOAD, uploadFile } from "#lib/upload";
 import { getBuffer } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Unggah media ke Zavedya CDN → link publik.
@@ -28,7 +29,7 @@ export default definePlugin({
     const media = link ? null : await ctx.fetchMedia().catch(() => null);
 
     if (!link && !media) {
-      return ctx.reply(`❌ Kirim atau reply media (gambar, video, audio, dokumen) dengan *${ctx.prefix}tourl*.\nBisa juga: *${ctx.prefix}tourl https://…/file.mp4*`, {
+      return ctx.reply(tl("tool.tourl.1", { prefix: ctx.pfx, prefix1: ctx.pfx }), {
         preview: { title: "To URL", body: "Unggah file ke CDN" },
       });
     }

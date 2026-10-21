@@ -1,7 +1,15 @@
+import { lex } from "#lib/i18n";
 import { definePlugin } from "#lib/plugins";
 import { groups } from "#lib/groups";
 import { AI_MODELS } from "#lib/autoai";
 import { bare, truncate } from "#lib/utils";
+import { db as store } from "#lib/database";
+import { MAX_LEVEL } from "#lib/levels";
+import { parseAmount, parseDuration } from "#lib/redeem";
+import { STAMINA_MAX, getRpg, statsOf } from "#lib/rpg";
+import { tr } from "#lib/tr";
+import { numberOf } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * .set <group|owner> <opsi> <nilai>
@@ -30,10 +38,10 @@ const GROUP = {
     bot: true,
     help: "name <teks> — ganti nama grup",
     async run({ sock, ctx }, value) {
-      if (!value) throw new Error("Tulis nama barunya.");
-      if (value.length > LIMIT_SUBJECT) throw new Error(`Nama grup maks ${LIMIT_SUBJECT} karakter.`);
+      if (!value) throw new Error(tl("st4.1"));
+      if (value.length > LIMIT_SUBJECT) throw new Error(tl("st4.2", { LIMIT_SUBJECT }));
       await sock.groupUpdateSubject(ctx.chatId, value);
-      return `✅ Nama grup → *${value}*`;
+      return tl("st4.3", { value });
     },
   },
   desc: {
@@ -41,10 +49,10 @@ const GROUP = {
     bot: true,
     help: "desc <teks|-> — ganti deskripsi (- untuk menghapus)",
     async run({ sock, ctx }, value) {
-      if (!value) throw new Error("Tulis deskripsinya (atau - untuk menghapus).");
-      if (value.length > LIMIT_DESC) throw new Error(`Deskripsi maks ${LIMIT_DESC} karakter.`);
+      if (!value) throw new Error(tl("st4.4"));
+      if (value.length > LIMIT_DESC) throw new Error(tl("st4.5", { LIMIT_DESC }));
       await sock.groupUpdateDescription(ctx.chatId, value === "-" ? undefined : value);
-      return value === "-" ? "✅ Deskripsi grup dihapus." : "✅ Deskripsi grup diperbarui.";
+      return value === "-" ? tl("st4.6") : tl("st4.7");
     },
   },
   pp: {
@@ -54,12 +62,12 @@ const GROUP = {
     async run({ sock, ctx }, value) {
       if (/^(hapus|remove|delete)$/i.test(value)) {
         await sock.removeProfilePicture(ctx.chatId);
-        return "✅ Foto grup dihapus.";
+        return tl("st4.8");
       }
       const buffer = await photoOf(ctx);
-      if (!buffer) throw new Error("Kirim atau reply gambar dengan caption perintah ini.");
+      if (!buffer) throw new Error(tl("st4.9"));
       await sock.updateProfilePicture(ctx.chatId, buffer);
-      return "✅ Foto grup diperbarui.";
+      return tl("st4.10");
     },
   },
   welcome: {
@@ -67,11 +75,11 @@ const GROUP = {
     help: "welcome <teks|reset> — pesan anggota masuk",
     async run({ ctx, chat, db }, value) {
       if (!value) {
-        return `👋 *Welcome* saat ini:\n${chat.sWelcome || "(bawaan)"}\n\nVariabel: @user @subject @count @desc @author\nContoh: ${ctx.prefix}set group welcome Halo @user, selamat datang di @subject!\nAktifkan: ${ctx.prefix}on welcome`;
+        return tl("st4.12", { v: chat.sWelcome || tl("st4.11"), pfx: ctx.pfx, pfx1: ctx.pfx });
       }
       chat.sWelcome = /^(reset|default)$/i.test(value) ? "" : value;
       db.save("groups");
-      return chat.sWelcome ? `✅ Pesan *welcome* diganti.${chat.welcome ? "" : `\n⚠️ Fitur welcome belum aktif — nyalakan dengan ${ctx.prefix}on welcome`}` : "✅ Pesan welcome kembali ke bawaan.";
+      return chat.sWelcome ? tl("st4.14", { v: chat.welcome ? "" : tl("st4.13", { pfx: ctx.pfx }) }) : tl("st4.15");
     },
   },
   goodbye: {
@@ -79,11 +87,11 @@ const GROUP = {
     help: "goodbye <teks|reset> — pesan anggota keluar",
     async run({ ctx, chat, db }, value) {
       if (!value) {
-        return `🚪 *Goodbye* saat ini:\n${chat.sBye || "(bawaan)"}\n\nVariabel: @user @subject @count @desc @author\nContoh: ${ctx.prefix}set group goodbye Sampai jumpa @user!\nAktifkan: ${ctx.prefix}on goodbye`;
+        return tl("st4.17", { v: chat.sBye || tl("st4.16"), pfx: ctx.pfx, pfx1: ctx.pfx });
       }
       chat.sBye = /^(reset|default)$/i.test(value) ? "" : value;
       db.save("groups");
-      return chat.sBye ? `✅ Pesan *goodbye* diganti.${chat.goodbye ? "" : `\n⚠️ Fitur goodbye belum aktif — nyalakan dengan ${ctx.prefix}on goodbye`}` : "✅ Pesan goodbye kembali ke bawaan.";
+      return chat.sBye ? tl("st4.19", { v: chat.goodbye ? "" : tl("st4.18", { pfx: ctx.pfx }) }) : tl("st4.20");
     },
   },
   chat: {
@@ -92,10 +100,10 @@ const GROUP = {
     help: "chat <admin|all> — siapa yang boleh kirim pesan",
     async run({ sock, ctx }, value) {
       const mode = choice(value, ADMIN_ALL);
-      if (!mode) throw new Error("Pilih: admin atau all.");
+      if (!mode) throw new Error(tl("st4.21"));
       groups.silence(ctx.chatId);
       await sock.groupSettingUpdate(ctx.chatId, mode === "admin" ? "announcement" : "not_announcement");
-      return mode === "admin" ? "🔒 Hanya admin yang bisa chat." : "🔓 Semua anggota bisa chat.";
+      return mode === "admin" ? tl("st4.22") : tl("st4.23");
     },
   },
   edit: {
@@ -104,9 +112,9 @@ const GROUP = {
     help: "edit <admin|all> — siapa yang boleh ubah info grup",
     async run({ sock, ctx }, value) {
       const mode = choice(value, ADMIN_ALL);
-      if (!mode) throw new Error("Pilih: admin atau all.");
+      if (!mode) throw new Error(tl("st4.24"));
       await sock.groupSettingUpdate(ctx.chatId, mode === "admin" ? "locked" : "unlocked");
-      return mode === "admin" ? "🔒 Info grup hanya bisa diubah admin." : "🔓 Semua anggota bisa ubah info grup.";
+      return mode === "admin" ? tl("st4.25") : tl("st4.26");
     },
   },
   add: {
@@ -115,9 +123,9 @@ const GROUP = {
     help: "add <admin|all> — siapa yang boleh tambah anggota",
     async run({ sock, ctx }, value) {
       const mode = choice(value, ADMIN_ALL);
-      if (!mode) throw new Error("Pilih: admin atau all.");
+      if (!mode) throw new Error(tl("st4.27"));
       await sock.groupMemberAddMode(ctx.chatId, mode === "admin" ? "admin_add" : "all_member_add");
-      return mode === "admin" ? "🔒 Hanya admin yang bisa tambah anggota." : "🔓 Semua anggota bisa tambah anggota.";
+      return mode === "admin" ? tl("st4.28") : tl("st4.29");
     },
   },
   approval: {
@@ -126,9 +134,9 @@ const GROUP = {
     help: "approval <on|off> — persetujuan admin untuk anggota baru",
     async run({ sock, ctx }, value) {
       const on = choice(value, ON_OFF);
-      if (on === undefined) throw new Error("Pilih: on atau off.");
+      if (on === undefined) throw new Error(tl("st4.30"));
       await sock.groupJoinApprovalMode(ctx.chatId, on ? "on" : "off");
-      return on ? "✅ Persetujuan anggota baru *aktif*." : "✅ Persetujuan anggota baru *mati*.";
+      return on ? tl("st4.31") : tl("st4.32");
     },
   },
   ephemeral: {
@@ -137,9 +145,9 @@ const GROUP = {
     help: "ephemeral <off|24h|7d|90d> — pesan sementara",
     async run({ sock, ctx }, value) {
       const seconds = choice(value, EPHEMERAL);
-      if (seconds === undefined) throw new Error("Pilih: off, 24h, 7d, atau 90d.");
+      if (seconds === undefined) throw new Error(tl("st4.33"));
       await sock.groupToggleEphemeral(ctx.chatId, seconds);
-      return seconds ? `✅ Pesan sementara: *${value}*` : "✅ Pesan sementara dimatikan.";
+      return seconds ? tl("st4.34", { value }) : tl("st4.35");
     },
   },
 };
@@ -150,9 +158,9 @@ const OWNER = {
     aliases: ["nama"],
     help: "name <teks> — ganti nama profil bot",
     async run({ sock }, value) {
-      if (!value) throw new Error("Tulis nama barunya.");
+      if (!value) throw new Error(tl("st4.36"));
       await sock.updateProfileName(value);
-      return `✅ Nama bot → *${value}*`;
+      return tl("st4.37", { value });
     },
   },
   bio: {
@@ -160,14 +168,14 @@ const OWNER = {
     help: "bio <teks> — ganti info/bio bot (maks 139 karakter)",
     async run({ sock }, value) {
       const text = value.replace(/\s+/g, " ").trim();
-      if (!text) throw new Error("Tulis bio-nya. Contoh: .set owner bio Miyako siap bertugas");
-      if (text.length > 139) throw new Error(`Bio maksimal 139 karakter (sekarang ${text.length}).`);
+      if (!text) throw new Error(tl("st4.38"));
+      if (text.length > 139) throw new Error(tl("st4.39", { length: text.length }));
       try {
         await sock.updateProfileStatus(text);
       } catch (err) {
-        throw new Error(`WhatsApp menolak perubahan bio (${err.message || "tanpa pesan"}). Coba lagi sebentar lagi.`);
+        throw new Error(tl("st4.41", { v: err.message || tl("st4.40") }));
       }
-      return `✅ Bio bot → *${text}*`;
+      return tl("st4.42", { text });
     },
   },
   pp: {
@@ -177,35 +185,35 @@ const OWNER = {
       const me = bare(sock.user?.id);
       if (/^(hapus|remove|delete)$/i.test(value)) {
         await sock.removeProfilePicture(me);
-        return "✅ Foto profil bot dihapus.";
+        return tl("st4.43");
       }
       const buffer = await photoOf(ctx);
-      if (!buffer) throw new Error("Kirim atau reply gambar dengan caption perintah ini.");
+      if (!buffer) throw new Error(tl("st4.44"));
       await sock.updateProfilePicture(me, buffer);
-      return "✅ Foto profil bot diperbarui.";
+      return tl("st4.45");
     },
   },
   persona: {
     aliases: ["aipersona", "karakter"],
     help: "persona <teks|reset> — karakter AutoAI (kosong = lihat saat ini)",
     async run({ db }, value) {
-      if (!value) return `🎭 *Persona AutoAI*\n${db.settings.autoAiPersona ? truncate(db.settings.autoAiPersona, 1200) : "(bawaan: Tsukiyuki Miyako)"}`;
+      if (!value) return tl("st4.47", { v: db.settings.autoAiPersona ? truncate(db.settings.autoAiPersona, 1200) : tl("st4.46") });
       if (/^(reset|default)$/i.test(value)) delete db.settings.autoAiPersona;
       else db.settings.autoAiPersona = value;
       db.save("settings");
-      return /^(reset|default)$/i.test(value) ? "✅ Persona AutoAI kembali ke Miyako (bawaan)." : "✅ Persona AutoAI diganti.";
+      return /^(reset|default)$/i.test(value) ? tl("st4.48") : tl("st4.49");
     },
   },
   aimodel: {
     aliases: ["ai", "modelai"],
-    help: `aimodel <${AI_MODELS.join("|")}> — AI yang dipakai AutoAI`,
+    get help() { return `aimodel <${AI_MODELS.join("|")}> — ${lex("AI yang dipakai AutoAI")}`; },
     async run({ db }, value) {
       const name = value.toLowerCase();
-      if (!name) return `🤖 AI AutoAI saat ini: *${db.settings.autoAiModel ?? "gemini"}*\nPilihan: ${AI_MODELS.join(", ")}`;
-      if (!AI_MODELS.includes(name)) throw new Error(`Pilih salah satu: ${AI_MODELS.join(", ")}`);
+      if (!name) return tl("st4.50", { v: db.settings.autoAiModel ?? "gemini", v1: AI_MODELS.join(", ") });
+      if (!AI_MODELS.includes(name)) throw new Error(tl("st4.51", { v: AI_MODELS.join(", ") }));
       db.settings.autoAiModel = name;
       db.save("settings");
-      return `✅ AutoAI sekarang memakai *${name}*.`;
+      return tl("st4.52", { name });
     },
   },
   autoread: {
@@ -215,12 +223,12 @@ const OWNER = {
       const choice = { all: "all", semua: "all", on: "all", group: "group", grup: "group", private: "private", pribadi: "private", off: false, mati: false }[value.toLowerCase()];
       if (choice === undefined) {
         const now = config.features?.autoRead;
-        return `👁️ Autoread saat ini: *${now || "off"}*\nPilihan: all, group, private, off`;
+        return tl("st4.53", { v: now || "off" });
       }
       (config.features ??= {}).autoRead = choice;
       (db.settings.features ??= {}).autoRead = choice;
       db.save("settings");
-      return choice ? `✅ Autoread aktif: *${choice === "all" ? "grup + pribadi" : choice === "group" ? "grup saja" : "pribadi saja"}*` : "✅ Autoread dimatikan.";
+      return choice ? tl("st4.57", { v: choice === "all" ? tl("st4.54") : choice === "group" ? tl("st4.55") : tl("st4.56") }) : tl("st4.58");
     },
   },
   cardstyle: {
@@ -228,10 +236,10 @@ const OWNER = {
     help: "cardstyle <preview|image> — kartu welcome/goodbye/level-up sebagai link preview atau gambar biasa",
     async run({ db }, value) {
       const style = value.toLowerCase();
-      if (!["preview", "image"].includes(style)) return `🖼️ Gaya kartu saat ini: *${db.settings.cardStyle ?? "preview"}*\nPilihan: preview, image`;
+      if (!["preview", "image"].includes(style)) return tl("st4.59", { v: db.settings.cardStyle ?? "preview" });
       db.settings.cardStyle = style;
       db.save("settings");
-      return `✅ Kartu sekarang dikirim sebagai *${style === "preview" ? "link preview besar" : "gambar biasa"}*.`;
+      return tl("st4.62", { v: style === "preview" ? tl("st4.60") : tl("st4.61") });
     },
   },
   mode: {
@@ -239,13 +247,71 @@ const OWNER = {
     help: "mode <self|public> — self = hanya owner yang bisa pakai bot",
     async run({ db }, value) {
       const mode = String(value).toLowerCase();
-      if (!["self", "public"].includes(mode)) throw new Error("Pilih: self atau public.");
+      if (!["self", "public"].includes(mode)) throw new Error(tl("st4.63"));
       db.settings.selfMode = mode === "self";
       db.save("settings");
-      return `✅ Mode bot: *${mode.toUpperCase()}*`;
+      return tl("st4.64", { v: mode.toUpperCase() });
     },
   },
 };
+
+/* ── set nilai pemain (owner): .set <limit|gold|diamond|bank|level|rpglevel|exp|xp|hp|stamina|premium> [@tag] <angka|+n|-n|max> ── */
+const RPG_MAX = 100;
+// field: [ambil nilai, tulis nilai, batas bawah, batas atas]
+const FIELDS = {
+  limit: { aliases: ["limitku"], get: (u) => u.limit ?? 0, put: (u, v) => (u.limit = v), min: 0, max: 999_999_999 },
+  gold: { aliases: ["koin", "dompet"], get: (u) => getRpg(u).gold, put: (u, v) => (getRpg(u).gold = v), min: 0, max: 999_999_999_999 },
+  diamond: { aliases: ["berlian", "dm"], get: (u) => getRpg(u).diamond, put: (u, v) => (getRpg(u).diamond = v), min: 0, max: 999_999_999 },
+  bank: { aliases: ["saldo", "tabungan"], get: (u) => getRpg(u).bank, put: (u, v) => (getRpg(u).bank = v), min: 0, max: 999_999_999_999 },
+  level: { aliases: ["lvl", "levelbot"], get: (u) => u.level ?? 1, put: (u, v) => { u.level = v; u.exp = 0; }, min: 1, max: MAX_LEVEL },
+  rpglevel: { aliases: ["rpglvl", "levelrpg"], get: (u) => getRpg(u).lvl, put: (u, v) => { const r = getRpg(u); r.lvl = v; r.xp = 0; r.hp = statsOf(r).maxHp; }, min: 1, max: RPG_MAX },
+  exp: { aliases: ["expbot"], get: (u) => u.exp ?? 0, put: (u, v) => (u.exp = v), min: 0, max: 999_999_999 },
+  xp: { aliases: ["rpgxp"], get: (u) => getRpg(u).xp, put: (u, v) => (getRpg(u).xp = v), min: 0, max: 999_999_999 },
+  hp: { aliases: ["darah"], get: (u) => getRpg(u).hp, put: (u, v) => (getRpg(u).hp = v), min: 1, max: 999_999 },
+  stamina: { aliases: ["energi"], get: (u) => getRpg(u).stamina, put: (u, v) => { const r = getRpg(u); r.stamina = v; r.t = Date.now(); }, min: 0, max: STAMINA_MAX },
+};
+const playerField = (name, field) => ({
+  aliases: field.aliases,
+  help: `${name} [@tag] <angka|+n|-n|max> — ubah ${name} pemain (tanpa tag = dirimu)`,
+  async run({ ctx }, value) {
+    const targetId = ctx.mentionedJid[0] ?? ctx.quotedSender ?? ctx.senderId;
+    const token = value.split(/\s+/).find((x) => x && !x.startsWith("@"));
+    if (!token) throw new Error(tr(`Format: .set ${name} [@tag] <angka|+n|-n|max>`, `Usage: .set ${name} [@tag] <number|+n|-n|max>`));
+    const user = store.user(targetId), before = field.get(user);
+    let next;
+    if (/^(max|maks|full)$/i.test(token)) next = field.max;
+    else {
+      const sign = /^[+-]/.test(token) ? token[0] : "", n = parseAmount(token.replace(/^[+-]/, ""));
+      if (n === null) throw new Error(tr("Angka tidak valid.", "Invalid number."));
+      next = sign === "+" ? before + n : sign === "-" ? before - n : n;
+    }
+    next = Math.min(field.max, Math.max(field.min, Math.round(next)));
+    field.put(user, next);
+    store.save("users");
+    return tr(`✅ ${name} @${numberOf(targetId)}: ${before} → *${next}*`, `✅ ${name} for @${numberOf(targetId)}: ${before} → *${next}*`);
+  },
+});
+const PLAYER_OPTIONS = Object.fromEntries(Object.entries(FIELDS).map(([name, f]) => [name, playerField(name, f)]));
+PLAYER_OPTIONS.premium = {
+  aliases: ["prem", "vip"],
+  help: "premium [@tag] <hari|perm|off> — atur premium pemain",
+  async run({ ctx }, value) {
+    const targetId = ctx.mentionedJid[0] ?? ctx.quotedSender ?? ctx.senderId;
+    const token = value.split(/\s+/).find((x) => x && !x.startsWith("@"));
+    if (!token) throw new Error(tr("Format: .set premium [@tag] <hari|perm|off>", "Usage: .set premium [@tag] <days|perm|off>"));
+    const user = store.user(targetId);
+    if (/^(off|mati|0)$/i.test(token)) user.premium = { on: false, expiredAt: 0 };
+    else {
+      const ms = parseDuration(token);
+      if (ms === null) throw new Error(tr("Durasi tidak valid.", "Invalid duration."));
+      user.premium = { on: true, expiredAt: ms < 0 ? 0 : Date.now() + ms };
+    }
+    store.save("users");
+    return tr(`✅ Premium @${numberOf(targetId)}: ${user.premium.on ? (user.premium.expiredAt ? "aktif" : "permanen") : "mati"}`, `✅ Premium for @${numberOf(targetId)}: ${user.premium.on ? (user.premium.expiredAt ? "active" : "permanent") : "off"}`);
+  },
+};
+
+Object.assign(OWNER, PLAYER_OPTIONS);
 
 const PRESETS = {
   setbio: "owner bio",
@@ -266,16 +332,16 @@ const find = (table, name) => {
 
 const helpText = (pfx, isOwner) =>
   [
-    `⚙️ *Pengaturan* — ${pfx}set <group|owner> <opsi> <nilai>`,
+    tl("st3.1", { pfx }),
     "",
-    "👥 *group* (admin grup, dipakai di dalam grup)",
-    ...Object.values(GROUP).map((o) => `• ${pfx}set group ${o.help}`),
+    tl("st3.2"),
+    ...Object.values(GROUP).map((o) => tl("st3.3", { pfx, help: lex(o.help) })),
     "",
-    `👑 *owner* (khusus owner${isOwner ? "" : " — kamu bukan owner"})`,
-    ...Object.values(OWNER).map((o) => `• ${pfx}set owner ${o.help}`),
+    tl("st3.5", { v: isOwner ? "" : tl("st3.4") }),
+    ...Object.values(OWNER).map((o) => tl("st3.6", { pfx, help: lex(o.help) })),
     "",
-    `💡 Singkatan: ${pfx}setbio, ${pfx}setwelcome, ${pfx}setgoodbye, ${pfx}setname, ${pfx}setdesc`,
-    `💡 Fitur on/off (welcome, goodbye, antilink, autoai, dll) → *${pfx}on* / *${pfx}off*`,
+    tl("st3.7", { pfx, pfx1: pfx, pfx2: pfx, pfx3: pfx, pfx4: pfx }),
+    tl("st3.8", { pfx, pfx1: pfx }),
   ].join("\n");
 
 export default definePlugin({
@@ -298,13 +364,13 @@ export default definePlugin({
     const match = ctx.argsStr.match(/^(\S+)(?:\s+(\S+))?(?:\s+([\s\S]*))?$/);
     const [scope, option, value = ""] = match ? [match[1].toLowerCase(), match[2], (match[3] ?? "").trim()] : [];
 
-    if (!["group", "grup", "owner"].includes(scope)) return ctx.reply(helpText(ctx.prefix, role.owner));
-    if (!option) return ctx.reply(helpText(ctx.prefix, role.owner));
+    if (!["group", "grup", "owner"].includes(scope)) return ctx.reply(helpText(ctx.pfx, role.owner));
+    if (!option) return ctx.reply(helpText(ctx.pfx, role.owner));
 
     if (scope === "owner") {
-      if (!role.owner) return ctx.reply("❌ Opsi *owner* khusus Owner bot.");
+      if (!role.owner) return ctx.reply(tl("st4.65"));
       const entry = find(OWNER, option);
-      if (!entry) return ctx.reply(`❌ Opsi *${option}* tidak ada.\n\n${helpText(ctx.prefix, true)}`);
+      if (!entry) return ctx.reply(tl("grp.set.1", { option, v: helpText(ctx.pfx, true) }));
       try {
         return await ctx.reply(await entry.run(env, value));
       } catch (err) {
@@ -313,13 +379,13 @@ export default definePlugin({
     }
 
     // scope group
-    if (!ctx.isGroup) return ctx.reply("👥 Opsi *group* hanya bisa dipakai di dalam grup.");
+    if (!ctx.isGroup) return ctx.reply(tl("grp.set.2"));
     const entry = find(GROUP, option);
-    if (!entry) return ctx.reply(`❌ Opsi *${option}* tidak ada.\n\n${helpText(ctx.prefix, role.owner)}`);
+    if (!entry) return ctx.reply(tl("grp.set.3", { option, v: helpText(ctx.pfx, role.owner) }));
 
     const { isAdmin, isBotAdmin } = await group();
-    if (!isAdmin && !role.owner) return ctx.reply("🛡️ Perintah ini khusus *admin grup*.");
-    if (entry.bot && !isBotAdmin) return ctx.reply("🤖 Jadikan bot sebagai *admin grup* dulu.");
+    if (!isAdmin && !role.owner) return ctx.reply(tl("grp.set.4"));
+    if (entry.bot && !isBotAdmin) return ctx.reply(tl("grp.set.5"));
 
     try {
       await ctx.reply(await entry.run(env, value));

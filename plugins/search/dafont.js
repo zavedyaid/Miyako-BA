@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { numbered } from "#lib/extract";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /search/dafont?query=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/search/dafont";
@@ -16,7 +17,7 @@ export default definePlugin({
   async run({ ctx }) {
     const query = ctx.argsStr || ctx.quotedText;
     if (!query) {
-      return ctx.reply(`❌ Masukkan kata kunci.\nContoh: *${ctx.prefix}dafont script*`, {
+      return ctx.reply(tl("src.dafont.1", { prefix: ctx.pfx }), {
         preview: { title: "DaFont", body: "Pencarian" },
       });
     }

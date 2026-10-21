@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { t as tl } from "#lib/i18n";
 
 export default definePlugin({
   name: "setmode",
@@ -9,7 +10,7 @@ export default definePlugin({
   access: { owner: true },
   async run({ ctx, db }) {
     const mode = ctx.args[0]?.toLowerCase();
-    if (!["self", "public"].includes(mode)) return ctx.reply(`❌ Gunakan: ${ctx.prefix}setmode self | public`);
+    if (!["self", "public"].includes(mode)) return ctx.reply(tl("own.setmode.1", { prefix: ctx.pfx }));
 
     db.settings.selfMode = mode === "self";
     db.save("settings");

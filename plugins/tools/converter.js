@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, fileNameOf, mediaSource, mimeOf } from "#lib/extract";
 import { uploadImage } from "#lib/upload";
+import { t as tl } from "#lib/i18n";
 
 // GET /tools/converter?url=…&format=…   (ubah nama parameter di sini bila API memakai nama lain)
 const LINK = /https?:\/\/\S+/i;
@@ -17,8 +18,8 @@ export default definePlugin({
     const link = ctx.argsStr.match(LINK)?.[0] ?? ctx.quotedText?.match(LINK)?.[0];
     const format = ctx.argsStr.replace(LINK, "").trim().split(/\s+/)[0]?.toLowerCase();
     if (!format) {
-      return ctx.reply(`❌ Tulis format tujuan.\nContoh: *${ctx.prefix}converter png https://example.com/foto.jpg*\nAtau kirim / reply gambar: *${ctx.prefix}converter webp*`, {
-        preview: { title: "Converter", body: "Ubah format file" },
+      return ctx.reply(tl("tool.converter.1", { prefix: ctx.pfx, prefix1: ctx.pfx }), {
+        preview: { title: "Converter", body: tl("tool.converter.2") },
       });
     }
 

@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { profileLines } from "#lib/extract";
+import { t as tl } from "#lib/i18n";
 
 // GET /stalker/youtube?username=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/stalker/youtube";
@@ -15,7 +16,7 @@ export default definePlugin({
   async run({ ctx }) {
     const username = (ctx.argsStr || ctx.quotedText || "").trim().replace(/^@/, "");
     if (!username) {
-      return ctx.reply(`❌ Masukkan username.\nContoh: *${ctx.prefix}youtubestalk mrbeast*`, {
+      return ctx.reply(tl("stk.youtubestalk.1", { prefix: ctx.pfx }), {
         preview: { title: "YouTube", body: "Stalker" },
       });
     }

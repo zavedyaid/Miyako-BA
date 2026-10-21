@@ -1,4 +1,6 @@
+import { lex } from "#lib/i18n";
 import { definePlugin } from "#lib/plugins";
+import { t as tl } from "#lib/i18n";
 
 /*
  * .on <fitur> / .off <fitur>
@@ -46,6 +48,13 @@ const GROUP_FEATURES = {
     needsBotAdmin: true,
     get: (chat) => chat.antiLink,
     set: (chat, on) => (chat.antiLink = on),
+  },
+  antispam: {
+    aliases: ["anti-spam", "spam"],
+    help: "Hapus pesan banjir (spam) otomatis & keluarkan setelah 3x peringatan (bot harus admin)",
+    needsBotAdmin: true,
+    get: (chat) => chat.antiSpam,
+    set: (chat, on) => (chat.antiSpam = on),
   },
   delete: {
     aliases: ["antidelete", "antihapus"],
@@ -142,21 +151,21 @@ const listing = (env) => {
   const { ctx, chat, role } = env;
   const out = [];
   if (ctx.isGroup && chat) {
-    out.push("👥 *group* (admin grup)");
+    out.push(tl("tg4.1"));
     for (const [name, f] of Object.entries(GROUP_FEATURES)) {
-      out.push(`${mark(f.get(chat))} ${name} — ${f.help}`);
+      out.push(`${mark(f.get(chat))} ${name} — ${lex(f.help)}`);
     }
-    out.push(`➡️ ${ctx.prefix}on <fitur> • ${ctx.prefix}off <fitur>`);
+    out.push(tl("tg4.2", { pfx: ctx.pfx, pfx1: ctx.pfx }));
   }
   if (role.owner) {
     if (out.length) out.push("");
-    out.push("👑 *owner* (khusus owner)");
+    out.push(tl("tg4.3"));
     for (const [name, f] of Object.entries(OWNER_FEATURES)) {
-      out.push(`${mark(f.get(env))} ${name} — ${f.help}`);
+      out.push(`${mark(f.get(env))} ${name} — ${lex(f.help)}`);
     }
-    out.push(`➡️ ${ctx.prefix}on owner <fitur> • ${ctx.prefix}off owner <fitur>`);
+    out.push(tl("tg4.4", { pfx: ctx.pfx, pfx1: ctx.pfx }));
   }
-  if (!out.length) out.push("👥 Fitur grup hanya bisa diatur di dalam grup.");
+  if (!out.length) out.push(tl("tg3.1"));
   return out.join("\n");
 };
 
@@ -166,7 +175,7 @@ const toggle = (on) => async (env) => {
   const scope = ["owner", "group", "grup"].includes(args[0]?.toLowerCase()) ? args.shift().toLowerCase() : null;
   const name = args[0];
 
-  if (!name) return ctx.reply(`⚙️ *Fitur ${on ? "ON" : "OFF"}*\n\n${listing(env)}`);
+  if (!name) return ctx.reply(tl("tg3.2", { v: on ? "ON" : "OFF", v1: listing(env) }));
 
   // Fitur owner: eksplisit (`owner`), di chat pribadi, atau owner menyebut fitur bot di dalam grup
   const asOwner =
@@ -174,32 +183,32 @@ const toggle = (on) => async (env) => {
     (!scope && !ctx.isGroup) ||
     (!scope && role.owner && !find(GROUP_FEATURES, name) && find(OWNER_FEATURES, name));
   if (asOwner) {
-    if (!role.owner) return ctx.reply("❌ Fitur *owner* khusus Owner bot.");
+    if (!role.owner) return ctx.reply(tl("tg3.3"));
     const hit = find(OWNER_FEATURES, name);
-    if (!hit) return ctx.reply(`❌ Fitur *${name}* tidak ada.\n\n${listing(env)}`);
+    if (!hit) return ctx.reply(tl("grp.toggle.1", { name, v: listing(env) }));
     const [label, feature] = hit;
-    if (feature.get(env) === on) return ctx.reply(`ℹ️ *${label}* sudah ${on ? "aktif" : "mati"}.`);
+    if (feature.get(env) === on) return ctx.reply(tl("grp.toggle.4", { label, v: on ? tl("grp.toggle.2") : tl("grp.toggle.3") }));
     feature.set(env, on);
-    return ctx.reply(`${mark(on)} *${label}* sekarang ${on ? "AKTIF" : "MATI"}.`);
+    return ctx.reply(tl("grp2.toggle.1", { v: mark(on), label, v1: on ? tl("grp.toggle.5") : tl("grp.toggle.6") }));
   }
 
   // Fitur grup
-  if (!ctx.isGroup) return ctx.reply("👥 Fitur grup hanya bisa diatur di dalam grup.\n💡 Fitur bot: *.on owner <fitur>*");
+  if (!ctx.isGroup) return ctx.reply(tl("grp.toggle.7"));
   const hit = find(GROUP_FEATURES, name);
-  if (!hit) return ctx.reply(`❌ Fitur *${name}* tidak ada.\n\n${listing(env)}`);
+  if (!hit) return ctx.reply(tl("grp.toggle.8", { name, v: listing(env) }));
 
   const [label, feature] = hit;
   const { isAdmin, isBotAdmin } = await group();
   if (feature.ownerOnly ? !role.owner : !isAdmin && !role.owner) {
-    return ctx.reply(feature.ownerOnly ? "❌ Fitur ini khusus Owner bot." : "🛡️ Perintah ini khusus *admin grup*.");
+    return ctx.reply(feature.ownerOnly ? tl("grp.toggle.9") : tl("grp.toggle.10"));
   }
-  if (feature.get(chat) === on) return ctx.reply(`ℹ️ *${label}* sudah ${on ? "aktif" : "mati"}.`);
+  if (feature.get(chat) === on) return ctx.reply(tl("grp.toggle.13", { label, v: on ? tl("grp.toggle.11") : tl("grp.toggle.12") }));
 
   feature.set(chat, on);
   db.save("groups");
 
-  const warn = on && feature.needsBotAdmin && !isBotAdmin ? "\n⚠️ Jadikan bot *admin grup* agar fitur ini berfungsi." : "";
-  await ctx.reply(`${mark(on)} *${label}* sekarang ${on ? "AKTIF" : "MATI"}.${warn}`);
+  const warn = on && feature.needsBotAdmin && !isBotAdmin ? tl("tg4.5") : "";
+  await ctx.reply(tl("grp2.toggle.2", { v: mark(on), label, v1: on ? tl("grp.toggle.14") : tl("grp.toggle.15"), warn }));
 };
 
 const on = definePlugin({

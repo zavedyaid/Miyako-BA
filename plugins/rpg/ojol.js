@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import * as game from "#lib/rpg";
 import { sendResult } from "#lib/rpgui";
+import { t } from "#lib/i18n";
 import { duration } from "#lib/utils";
 
 /*
@@ -14,9 +15,9 @@ const driver = (kind, meta) =>
     async run(env) {
       const { ctx, user, db } = env;
       const spec = game.TRIPS[kind], r = game.getRpg(user);
-      if (r.lvl < spec.minLv) return ctx.reply(`🔒 ${spec.name} butuh level *${spec.minLv}* (levelmu ${r.lvl}).`);
+      if (r.lvl < spec.minLv) return ctx.reply(t("trip.needLevel", { name: spec.name, lv: spec.minLv, cur: r.lvl }));
       const left = game.cooldownLeft(r, kind, game.CD[kind]);
-      if (left) return ctx.reply(`⏳ Pesanan ${spec.name} berikutnya masuk dalam *${duration(left)}*.`);
+      if (left) return ctx.reply(t("trip.cooldown", { name: spec.name, time: duration(left) }));
       const stop = game.preflight(r, spec.cost, false);
       if (stop) return ctx.reply(stop);
       const res = game.trip(r, kind);

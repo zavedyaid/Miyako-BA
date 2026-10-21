@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { numbered } from "#lib/extract";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /search/soundcloud?query=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/search/soundcloud";
@@ -16,7 +17,7 @@ export default definePlugin({
   async run({ ctx }) {
     const query = ctx.argsStr || ctx.quotedText;
     if (!query) {
-      return ctx.reply(`❌ Masukkan kata kunci.\nContoh: *${ctx.prefix}scsearch lofi*`, {
+      return ctx.reply(tl("src.scsearch.1", { prefix: ctx.pfx }), {
         preview: { title: "SoundCloud", body: "Pencarian" },
       });
     }

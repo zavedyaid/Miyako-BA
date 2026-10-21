@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { definePlugin } from "#lib/plugins";
 import { config } from "#lib/config";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Kelola plugin langsung dari WhatsApp (khusus owner):
@@ -99,27 +100,27 @@ const save = definePlugin({
     if (!ref) {
       return ctx.reply(
         [
-          "❌ Tulis nama plugin.",
-          `• *${ctx.prefix}addplugin halo* (reply kode / kirim file .js)`,
-          `• *${ctx.prefix}addplugin tools/halo* → ke folder plugins/tools/`,
-          `• Plugin yang sudah ada akan *diperbarui*; yang baru masuk ke plugins/${DEFAULT_CATEGORY}/ bila folder tidak disebut.`,
-          "Nama: huruf, angka, - atau _ saja.",
+          tl("own2.plugin.1"),
+          tl("own.plugin.1", { prefix: ctx.pfx }),
+          `• *${ctx.pfx}addplugin tools/halo* → ke folder plugins/tools/`,
+          tl("own.plugin.2", { DEFAULT_CATEGORY }),
+          tl("own.plugin.3"),
         ].join("\n"),
       );
     }
 
     const code = await readSource(ctx, match[2] ?? "");
-    if (!code) return ctx.reply("❌ Kodenya mana? Reply pesan berisi kode, kirim file .js, atau tulis kode setelah nama.");
-    if (Buffer.byteLength(code) > MAX_BYTES) return ctx.reply(`❌ Kode terlalu besar (maks ${MAX_BYTES / 1024} KB).`);
-    if (!/export\s+default/.test(code)) return ctx.reply("❌ Plugin harus punya `export default definePlugin({ … })`.");
+    if (!code) return ctx.reply(tl("own.plugin.4"));
+    if (Buffer.byteLength(code) > MAX_BYTES) return ctx.reply(tl("own.plugin.5", { v: MAX_BYTES / 1024 }));
+    if (!/export\s+default/.test(code)) return ctx.reply(tl("own.plugin.6"));
 
     const existing = locate(ref);
     const file = existing ?? path.join(ROOT, (ref.category ?? DEFAULT_CATEGORY).toLowerCase(), `${ref.name}.js`);
-    if (path.resolve(file) === SELF) return ctx.reply("🔒 Plugin manajer ini tidak bisa ditimpa lewat bot. Ganti manual lewat file / .exec.");
-    if (!path.resolve(file).startsWith(ROOT + path.sep)) return ctx.reply("❌ Lokasi tidak valid.");
+    if (path.resolve(file) === SELF) return ctx.reply(tl("own.plugin.7"));
+    if (!path.resolve(file).startsWith(ROOT + path.sep)) return ctx.reply(tl("own.plugin.8"));
 
     const problem = await checkSyntax(code);
-    if (problem) return ctx.reply(`❌ Sintaks error, plugin tidak disimpan:\n\`\`\`\n${truncate(problem, 1500)}\n\`\`\``);
+    if (problem) return ctx.reply(tl("own.plugin.9", { v: truncate(problem, 1500) }));
 
     const previous = existing ? fs.readFileSync(file, "utf8") : null;
     if (existing) backup(file);
@@ -136,11 +137,11 @@ const save = definePlugin({
         fs.rmSync(file, { force: true });
         registry.unload(file);
       }
-      return ctx.reply(`❌ Plugin gagal dimuat (cek log konsol untuk detail).\n${previous !== null ? "↩️ Dikembalikan ke versi sebelumnya." : "🗑️ File tidak disimpan."}`);
+      return ctx.reply(tl("own.plugin.11", { v: previous !== null ? tl("own2.plugin.2") : tl("own.plugin.10") }));
     }
 
     const names = registry.plugins.length;
-    await ctx.reply(`${existing ? "♻️ Diperbarui" : "✅ Ditambahkan"}: *plugins/${rel(file)}*\n📦 Total command aktif: ${names}`);
+    await ctx.reply(tl("own.plugin.12", { v: existing ? "♻️ Diperbarui" : "✅ Ditambahkan", v1: rel(file), names }));
   },
 });
 
@@ -153,9 +154,9 @@ const get = definePlugin({
   access: { owner: true },
   async run({ ctx }) {
     const ref = parseRef(ctx.args[0]);
-    if (!ref) return ctx.reply(`❌ Contoh: *${ctx.prefix}getplugin tiktok*`);
+    if (!ref) return ctx.reply(tl("own.plugin.13", { prefix: ctx.pfx }));
     const file = locate(ref);
-    if (!file) return ctx.reply(`❌ Plugin *${ctx.args[0]}* tidak ditemukan. Lihat *${ctx.prefix}listplugin*.`);
+    if (!file) return ctx.reply(tl("own.plugin.14", { v: ctx.args[0], prefix: ctx.pfx }));
     await ctx.reply({ document: fs.readFileSync(file), mimetype: "text/javascript", fileName: path.basename(file), caption: `📄 plugins/${rel(file)}` });
   },
 });
@@ -169,15 +170,15 @@ const del = definePlugin({
   access: { owner: true },
   async run({ ctx, registry }) {
     const ref = parseRef(ctx.args[0]);
-    if (!ref) return ctx.reply(`❌ Contoh: *${ctx.prefix}delplugin halo*`);
+    if (!ref) return ctx.reply(tl("own.plugin.15", { prefix: ctx.pfx }));
     const file = locate(ref);
-    if (!file) return ctx.reply(`❌ Plugin *${ctx.args[0]}* tidak ditemukan. Lihat *${ctx.prefix}listplugin*.`);
-    if (path.resolve(file) === SELF) return ctx.reply("🔒 Plugin manajer ini tidak bisa dihapus lewat bot.");
+    if (!file) return ctx.reply(tl("own.plugin.16", { v: ctx.args[0], prefix: ctx.pfx }));
+    if (path.resolve(file) === SELF) return ctx.reply(tl("own.plugin.17"));
 
     backup(file);
     fs.rmSync(file, { force: true });
     registry.unload(file);
-    await ctx.reply(`🗑️ Dihapus: *plugins/${rel(file)}*\n💾 Cadangan ada di database/plugin-backup/`);
+    await ctx.reply(tl("own.plugin.18", { v: rel(file) }));
   },
 });
 
@@ -197,7 +198,7 @@ const list = definePlugin({
       if (!byDir.has(dir)) byDir.set(dir, []);
       byDir.get(dir).push(rest.join("/").replace(/\.js$/, ""));
     }
-    if (!byDir.size) return ctx.reply("❌ Tidak ada plugin yang cocok.");
+    if (!byDir.size) return ctx.reply(tl("own.plugin.19"));
 
     const lines = [...byDir].sort(([a], [b]) => a.localeCompare(b)).map(([dir, names]) => `📁 *${dir}* (${names.length})\n${names.sort().join(", ")}`);
     await ctx.reply(truncate(lines.join("\n\n"), 3500), { preview: false });

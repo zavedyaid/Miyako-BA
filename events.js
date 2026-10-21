@@ -15,6 +15,7 @@ import { logger } from "#lib/logger";
 import { cardPayload, fetchAvatar, renderCard } from "#lib/cards";
 import { bare, messageCache, numberOf, truncate } from "#lib/utils";
 import { handleMessages } from "./handler.js";
+import { t as tl } from "#lib/i18n";
 
 const REVOKE = proto?.WebMessageInfo?.StubType?.REVOKE ?? 1;
 
@@ -32,13 +33,8 @@ const guard = (name, handler) => async (...args) => {
  *   adminNotif → promote / demote
  * Teks kustom: .set group welcome|goodbye <teks>  (variabel @user @subject @count @desc @author)
  */
-const DEFAULT_TEXT = {
-  add: "👋 Selamat datang @user di *@subject*!\n👥 Anggota: @count",
-  leave: "👋 Sampai jumpa @user!\n👥 Sisa anggota: @count",
-  kicked: "🚪 @user dikeluarkan oleh @author.\n👥 Sisa anggota: @count",
-  promote: "⚡ @user sekarang *Admin* (oleh @author).",
-  demote: "📉 @user bukan *Admin* lagi (oleh @author).",
-};
+// Teks bawaan ada di config/lang (ev.add / ev.leave / ev.kicked / ev.promote / ev.demote); teks kustom grup tetap lewat .set group welcome|goodbye
+const defaultText = (kind) => tl(`ev.${kind}`);
 
 const displayName = (jid, rawId) => db.users[jid]?.name ?? db.users[rawId]?.name ?? numberOf(jid);
 
@@ -47,7 +43,7 @@ const renderMemberCard = async (sock, kind, { jid, rawId, meta }) => {
     const avatar = await fetchAvatar(sock, jid);
     return await renderCard(kind, { name: displayName(jid, rawId), fallbackName: numberOf(jid), group: meta?.subject ?? "Grup", count: meta?.participants?.length ?? 0, avatar });
   } catch (err) {
-    logger.warn(`Kartu ${kind} gagal dirender: ${err.message}`);
+    logger.warn(`${kind} card failed to render: ${err.message}`);
     return null;
   }
 };
@@ -72,7 +68,7 @@ const onParticipants = (sock) => async ({ id, author, authorPn, action, particip
 
     const kind = action === "remove" ? (selfLeft ? "leave" : "kicked") : action;
     const custom = { add: chat.sWelcome, leave: chat.sBye, kicked: chat.sBye }[kind];
-    const template = custom || DEFAULT_TEXT[kind];
+    const template = custom || defaultText(kind);
 
     const text = template
       .replaceAll("@user", `@${numberOf(jid)}`)
@@ -95,7 +91,7 @@ const onParticipants = (sock) => async ({ id, author, authorPn, action, particip
           sent = await sock.sendMessage(id, cardPayload(card, { ...info, style: attempt })).then(
             () => true,
             (err) => {
-              logger.warn(`Kartu ${action} (${attempt}) gagal terkirim: ${err.message}`);
+              logger.warn(`${action} card (${attempt}) failed to send: ${err.message}`);
               return false;
             },
           );
@@ -121,9 +117,9 @@ const onGroupsUpdate = (sock) => (updates) => {
     if (update.announce !== undefined && groups.isSilenced(update.id)) continue;
 
     if (update.announce === true) {
-      sock.sendMessage(update.id, { text: "🔒 Grup *ditutup* — hanya admin yang bisa mengirim pesan." }).catch(() => {});
+      sock.sendMessage(update.id, { text: tl("evt.events.1") }).catch(() => {});
     } else if (update.announce === false) {
-      sock.sendMessage(update.id, { text: "🔓 Grup *dibuka* — semua anggota bisa mengirim pesan." }).catch(() => {});
+      sock.sendMessage(update.id, { text: tl("evt.events.2") }).catch(() => {});
     }
   }
 };
@@ -145,7 +141,7 @@ const onMessagesUpdate = (sock) => (updates) => {
       content?.videoMessage?.caption ||
       "";
 
-    const text = `🗑️ @${numberOf(author)} menghapus pesan${snippet ? `:\n\n${truncate(snippet, 1000)}` : "."}`;
+    const text = tl("ev.delete", { n: numberOf(author), snippet: snippet ? `:\n\n${truncate(snippet, 1000)}` : "." });
     sock.sendMessage(key.remoteJid, { text, mentions: [author] }).catch(() => {});
   }
 };
@@ -156,7 +152,7 @@ const onCall = (sock) => (calls) => {
   for (const call of calls) {
     if (call.status !== "offer") continue;
     sock.rejectCall(call.id, call.from).catch(() => {});
-    sock.sendMessage(call.from, { text: "📵 Panggilan tidak diterima. Silakan kirim pesan teks." }).catch(() => {});
+    sock.sendMessage(call.from, { text: tl("evt.events.3") }).catch(() => {});
   }
 };
 

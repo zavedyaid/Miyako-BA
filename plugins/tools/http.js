@@ -1,6 +1,8 @@
+import { lex } from "#lib/i18n";
 import { definePlugin } from "#lib/plugins";
 import { safeFetch } from "#lib/http";
 import { presentResponse } from "#lib/httpview";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Ambil / kirim data ke website apa pun (khusus premium & owner). Hanya alamat publik; redirect dicek ulang.
@@ -58,10 +60,10 @@ const build = ({ name, aliases, body: hasBody, desc }) =>
       if (!parsed) {
         return ctx.reply(
           [
-            `🌐 *${ctx.prefix}${name}* — ${desc}`,
-            `Contoh: *${ctx.prefix}${name} https://api.github.com/users/octocat*`,
-            hasBody ? `Body: JSON {"a":1} • form a=1 b=2 • atau teks biasa` : "Parameter: tambah k=v setelah URL",
-            `Opsi: -H "Nama: nilai" • -f kirim sebagai file • -t paksa teks • -i tampilkan header`,
+            `🌐 *${ctx.pfx}${name}* — ${lex(desc)}`,
+            tl("tool.http.1", { prefix: ctx.pfx, name }),
+            hasBody ? tl("tool.http.2") : tl("tool.http.3"),
+            tl("tool.http.4"),
           ].join("\n"),
         );
       }
@@ -75,7 +77,7 @@ const build = ({ name, aliases, body: hasBody, desc }) =>
         const tokens = parsed.body.split(/[\s&]+/).filter(Boolean);
         const form = tokens.length > 0 && tokens.every((t) => KV.test(t));
         if (!hasBody) {
-          if (!form) return ctx.reply("❌ Untuk method ini tulis parameter sebagai k=v (contoh: q=halo page=2).");
+          if (!form) return ctx.reply(tl("tool.http.5"));
           const target = new URL(url);
           for (const t of tokens) target.searchParams.append(t.slice(0, t.indexOf("=")), t.slice(t.indexOf("=") + 1));
           url = target.href;
@@ -83,7 +85,7 @@ const build = ({ name, aliases, body: hasBody, desc }) =>
           try {
             JSON.parse(parsed.body);
           } catch (err) {
-            return ctx.reply(`❌ JSON tidak valid: ${err.message}`);
+            return ctx.reply(tl("tool.http.6", { message: err.message }));
           }
           body = parsed.body;
           headers["Content-Type"] ??= "application/json";

@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
+import { t as tl } from "#lib/i18n";
 
 // GET /downloader/youtube?url=…  → downloads: [{ quality: "720p", format: "mp4", audioOnly, url }]
 const LINK = /https?:\/\/\S+/i;
@@ -18,8 +19,8 @@ export default definePlugin({
     const input = ctx.argsStr || ctx.quotedText || "";
     const url = input.match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Kirim link YouTube.\nContoh: *${ctx.prefix}ytmp4 https://youtu.be/xxxx 720*`, {
-        preview: { title: "YouTube MP4", body: "Unduh video" },
+      return ctx.reply(tl("dl.ytmp4.1", { prefix: ctx.pfx }), {
+        preview: { title: "YouTube MP4", body: tl("dl2.ytmp4.1") },
       });
     }
     const wanted = Number.parseInt(input.replace(LINK, "").match(/\d{3,4}/)?.[0], 10);

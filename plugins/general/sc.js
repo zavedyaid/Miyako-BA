@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { config } from "#lib/config";
+import { t } from "#lib/i18n";
 import { sendInteractive } from "#lib/interactive";
 
 /*
@@ -12,32 +13,15 @@ export default definePlugin({
   name: "sc",
   aliases: ["script", "sourcecode", "source", "repo"],
   category: "general",
-  description: "Info script bot + link repositori GitHub",
+  description: "Bot script info + GitHub repository link",
   usage: "sc",
   async run({ ctx, sock }) {
     const repo = config.social?.repo ?? REPO;
-    const text = [
-      `*${config.name.replace(/\s*-\s*/, "-")}*`,
-      "> Bot WhatsApp modular berbasis plugin di atas @zavedyaid/baileys, dengan hot-reload tanpa build-step, pesan interaktif (list, katalog, promo, forward dari channel), router API api.zavedya.id, serta sistem limit, level, dan EXP bawaan.",
-      "",
-      "> Fitur?",
-      "> Banyak Seperti",
-      "> Play, Tiktok, swgc, dll",
-      "",
-      "> Author",
-      "> - ZavedyaID ( OWNER / DEVELOPER)",
-      "> - RullzFuqi ( Base / Ikut serta pembuatan )",
-      "> - ZavedyaApi ( Sebagai Router Semua Fitur Bot )",
-      "",
-      "Note: Btw Ini SC masih sedikit fiturnya, Support Kami Terus yahh! Jika Menemukan bug tolong lapor kepada kami!!!",
-      "",
-      "*Jangan Lupa Starsnya ya*",
-      repo,
-    ].join("\n");
+    const text = t("sc.text", { name: config.name.replace(/\s*-\s*/, "-"), repo });
 
     await sendInteractive(sock, ctx.chatId, {
       text,
-      buttons: [{ type: "url", text: "⭐ GitHub Repository", url: repo }],
+      buttons: [{ type: "url", text: t("sc.button"), url: repo }],
       offer: false,
       mentions: [ctx.senderId],
       quoted: await ctx.quote(),

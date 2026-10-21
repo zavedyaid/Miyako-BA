@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /search/yts?query=…&limit=…  → results[{ title, url, duration, views, publishedTime, author: { name } }]
 const LIMIT = 10;
@@ -15,7 +16,7 @@ export default definePlugin({
   async run({ ctx }) {
     const query = ctx.argsStr || ctx.quotedText;
     if (!query) {
-      return ctx.reply(`❌ Masukkan kata kunci.\nContoh: *${ctx.prefix}yts lofi hip hop*`, {
+      return ctx.reply(tl("src.yts.1", { prefix: ctx.pfx }), {
         preview: { title: "YouTube Search", body: "Pencarian" },
       });
     }

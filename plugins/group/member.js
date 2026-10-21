@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { botIdentities, groups } from "#lib/groups";
 import { PARTICIPANT_STATUS, findParticipant, identitiesOf, isOwnerParticipant, normalizeNumber, tag, targetsOf } from "#lib/targets";
 import { toPn } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Kelola anggota: .add  .kick (.dor)  .promote  .demote
@@ -31,7 +32,7 @@ const apply = async ({ sock, ctx }, action, jids, skipped, doneText) => {
         done++;
         lines.push(`✅ ${tag(jid)} ${doneText}`);
       } else {
-        lines.push(`❌ ${tag(jid)} — ${PARTICIPANT_STATUS[statusOf(entry)] ?? `gagal (kode ${statusOf(entry)})`}`);
+        lines.push(`❌ ${tag(jid)} — ${PARTICIPANT_STATUS[statusOf(entry)] ?? tl("ps.unknown", { code: statusOf(entry) })}`);
       }
     }
     groups.forget(ctx.chatId);
@@ -43,7 +44,7 @@ const apply = async ({ sock, ctx }, action, jids, skipped, doneText) => {
 };
 
 const usage = (ctx, name, extra = "") =>
-  ctx.reply(`❌ Tag orangnya, reply pesannya, atau tulis nomornya.\nContoh: *${ctx.prefix}${name} @user*${extra}`);
+  ctx.reply(tl("grp.member.1", { prefix: ctx.pfx, name, extra }));
 
 const add = definePlugin({
   name: "add",
@@ -57,8 +58,8 @@ const add = definePlugin({
     const targets = targetsOf(ctx).map((jid) => (jid.endsWith("@s.whatsapp.net") ? jid : null)).filter(Boolean);
     const numbers = ctx.args.map(normalizeNumber).filter(Boolean).map(toPn);
     const jids = [...new Set(targets.length ? targets : numbers)];
-    if (!jids.length) return ctx.reply(`❌ Tulis nomornya.\nContoh: *${ctx.prefix}add 6281234567890*`);
-    if (jids.length > 10) return ctx.reply("❌ Maksimal 10 nomor sekali tambah.");
+    if (!jids.length) return ctx.reply(tl("grp.member.2", { prefix: ctx.pfx }));
+    if (jids.length > 10) return ctx.reply(tl("grp.member.3"));
 
     const { meta } = await group();
     const skipped = [];
@@ -92,7 +93,7 @@ const kick = definePlugin({
       if (!p) skipped.push({ jid, reason: "bukan anggota grup" });
       else if (isBot(sock, p)) skipped.push({ jid, reason: "itu aku sendiri 🥲" });
       else if (isOwnerParticipant(p) && !role.owner) skipped.push({ jid, reason: "owner bot tidak bisa dikeluarkan" });
-      else if (p.admin) skipped.push({ jid, reason: `admin grup — turunkan dulu dengan ${ctx.prefix}demote` });
+      else if (p.admin) skipped.push({ jid, reason: `admin grup — turunkan dulu dengan ${ctx.pfx}demote` });
       else todo.push(p.id);
     }
     await apply(env, "remove", todo, skipped, "dikeluarkan");

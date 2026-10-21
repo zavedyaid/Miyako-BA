@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { mentionJid } from "#lib/targets";
 import { numberOf } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 export default definePlugin({
   name: "tagall",
@@ -12,7 +13,7 @@ export default definePlugin({
   async run({ ctx, group }) {
     const { meta } = await group();
     const members = meta?.participants ?? [];
-    if (!members.length) return ctx.reply("❌ Gagal membaca daftar anggota grup.");
+    if (!members.length) return ctx.reply(tl("grp.tagall.1"));
 
     const jids = members.map(mentionJid);
     const note = ctx.argsStr || ctx.quotedText;

@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, fileNameOf, mediaSource, mimeOf } from "#lib/extract";
+import { t as tl } from "#lib/i18n";
 
 // GET /downloader/terabox?url=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/downloader/terabox";
@@ -16,7 +17,7 @@ export default definePlugin({
   async run({ ctx }) {
     const url = ctx.argsStr.match(LINK)?.[0] ?? ctx.quotedText?.match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Kirim link TeraBox.\nContoh: *${ctx.prefix}terabox https://terabox.com/s/xxxx*`, {
+      return ctx.reply(tl("dl.terabox.1", { prefix: ctx.pfx }), {
         preview: { title: "TeraBox", body: "Downloader" },
       });
     }

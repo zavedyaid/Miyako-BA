@@ -1,4 +1,5 @@
 import { definePlugin } from "#lib/plugins";
+import { t as tl } from "#lib/i18n";
 
 const INVITE = /chat\.whatsapp\.com\/([A-Za-z0-9]{10,})/i;
 
@@ -11,10 +12,10 @@ const join = definePlugin({
   access: { owner: true },
   async run({ sock, ctx }) {
     const code = (ctx.argsStr.match(INVITE) ?? ctx.quotedText?.match(INVITE))?.[1];
-    if (!code) return ctx.reply(`❌ Contoh: *${ctx.prefix}join https://chat.whatsapp.com/xxxx*`);
+    if (!code) return ctx.reply(tl("own.join.1", { prefix: ctx.pfx }));
 
     const result = await sock.groupAcceptInvite(code);
-    await ctx.reply(result ? "✅ Berhasil masuk grup." : "⏳ Permintaan bergabung dikirim (menunggu persetujuan admin).");
+    await ctx.reply(result ? tl("own.join.2") : tl("own2.join.1"));
   },
 });
 
@@ -25,7 +26,7 @@ const leave = definePlugin({
   description: "Bot keluar dari grup ini",
   access: { owner: true, group: true },
   async run({ sock, ctx }) {
-    await ctx.reply("👋 Sampai jumpa semuanya!", { quoted: false });
+    await ctx.reply(tl("jn3.1"), { quoted: false });
     await sock.groupLeave(ctx.chatId);
   },
 });

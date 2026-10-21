@@ -3,6 +3,7 @@ import { api, ApiError } from "#lib/api";
 import { markdownToWhatsApp, pickText } from "#lib/extract";
 import { truncate } from "#lib/utils";
 import { DEFAULT_VISION_PROMPT, askAI, attachVisual, noteOf } from "#lib/vision";
+import { t as tl } from "#lib/i18n";
 
 // GET /ai/agnes?prompt=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/ai/agnes";
@@ -18,8 +19,8 @@ export default definePlugin({
     const visual = await attachVisual(ctx);
     const prompt = ctx.argsStr || ctx.quotedText || (visual ? DEFAULT_VISION_PROMPT : "");
     if (!prompt) {
-      return ctx.reply(`❌ Masukkan pertanyaan (atau kirim / reply gambar atau video).\nContoh: *${ctx.prefix}agnes jelaskan cara kerja AI*`, {
-        preview: { title: "Agnes AI", body: "Tanya apa saja" },
+      return ctx.reply(tl("ai.agnes.1", { prefix: ctx.pfx }), {
+        preview: { title: "Agnes AI", body: tl("ai.agnes.2") },
       });
     }
 

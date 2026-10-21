@@ -1,6 +1,7 @@
 import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, mediaSource } from "#lib/extract";
+import { t as tl } from "#lib/i18n";
 
 /*
  * GET /downloader/tiktok?url=…
@@ -73,7 +74,7 @@ export default definePlugin({
   async run({ ctx }) {
     const url = ctx.argsStr.match(LINK)?.[0] ?? ctx.quotedText?.match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Kirim link TikTok.\nContoh: *${ctx.prefix}tiktok https://vt.tiktok.com/xxxx*`, {
+      return ctx.reply(tl("dl.tiktok.1", { prefix: ctx.pfx }), {
         preview: { title: "TikTok", body: "Downloader" },
       });
     }
@@ -112,7 +113,7 @@ export default definePlugin({
         const title = data.music?.title || "tiktok-audio";
         await ctx
           .reply({ audio: mediaSource(audioUrl), mimetype: "audio/mpeg", fileName: `${title}.mp3` })
-          .catch(() => ctx.reply(`⚠️ Video terkirim, tapi audionya gagal dikirim.`, { preview: false }));
+          .catch(() => ctx.reply(tl("dl.tiktok.2"), { preview: false }));
       }
 
       ctx.react("✅");

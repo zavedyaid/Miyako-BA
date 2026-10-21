@@ -4,3 +4,4 @@ database/
 tmp/
 .env
 *.log
+backups/

@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { autoReply, clearHistory } from "#lib/autoai";
+import { t as tl } from "#lib/i18n";
 
 /*
  * AutoAI (karakter Tsukiyuki Miyako) — balas otomatis tanpa command.
@@ -21,7 +22,7 @@ const reset = definePlugin({
   description: "Hapus ingatan percakapan AutoAI di chat ini",
   async run({ ctx }) {
     clearHistory(ctx.chatId);
-    await ctx.reply("🐰 Baik. Percakapan sebelumnya sudah kulupakan.");
+    await ctx.reply(tl("ai.autoai.1"));
   },
 });
 

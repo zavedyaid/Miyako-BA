@@ -4,21 +4,24 @@
  * GitHub  : https://github.com/ZavedyaID/Miyako-BA
  * License : MIT
  *
- * Alur: messages.upsert → ctx → identity → gate → exp → sapaan owner → afk → antilink → autoreply → registrasi → commands
+ * Alur: messages.upsert → ctx → identity → gate → anti-spam → exp → sapaan owner → afk → antilink → autoreply → registrasi → commands
  */
 
 import { generateMessageIDV2 } from "#lib/baileys";
 import { config, isOwnerIdentity } from "#lib/config";
 import { db } from "#lib/database";
 import { groups, inspectGroup } from "#lib/groups";
+import { resolveLang, withLang } from "#lib/i18n";
 import { executeCommand } from "#lib/exec";
 import { announceLevelUp } from "#lib/levelup";
+import { antiSpam } from "#lib/antispam";
 import { greetOwner } from "#lib/ownergreet";
 import { registration } from "#lib/register";
 import { logger } from "#lib/logger";
 import { registry } from "#lib/plugins";
 import { buildContext } from "#lib/serialize";
 import { bare, closest, duration, gainExp, messageCache, numberOf, pick, randomInt, slugify, toNumber } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 const STATUS_REACTIONS = ["😍", "🔥", "💯", "🤩", "😭", "👏", "❤️"];
 const LINK = /(https?:\/\/\S+|chat\.whatsapp\.com\/\S+)/i;
@@ -45,7 +48,10 @@ const identity = (env, next) => {
   env.user = db.user(ctx.senderId, ctx.pushName);
   env.chat = ctx.isGroup ? db.group(ctx.chatId) : null;
   env.role = { owner, premium: owner || premiumActive(env.user) };
-  return next();
+  // Bahasa pesan ini (grup → pengguna → default bot); ctx.pfx = prefix yang aman dipakai juga untuk pesan non-command.
+  ctx.lang = resolveLang(env);
+  ctx.pfx = ctx.pfx ?? ".";
+  return withLang(ctx.lang, next);
 };
 
 const gate = (env, next) => {
@@ -74,7 +80,7 @@ const reactStatus = async (sock, ctx) => {
     await sock.readMessages([key]);
     await sock.sendMessage("status@broadcast", { react: { key, text: pick(STATUS_REACTIONS) } }, { statusJidList: recipients });
   } catch (err) {
-    logger.warn(`Reaksi status gagal: ${err.message}`);
+    logger.warn(`Status reaction failed: ${err.message}`);
   }
 };
 
@@ -111,7 +117,7 @@ const afk = (env, next) => {
     user.afk = -1;
     user.afkReason = "";
     db.save("users");
-    ctx.reply(`👋 Selamat datang kembali!\n✏️ *${reason}*\n⏱️ *${away}*`);
+    ctx.reply(tl("hnd.handler.1", { reason, away }));
   }
 
   if (ctx.isGroup) {
@@ -119,7 +125,7 @@ const afk = (env, next) => {
       const target = db.users[jid];
       if (target?.afk >= 0) {
         ctx.reply(
-          `⚠️ @${numberOf(jid)} sedang *AFK*\n✏️ ${target.afkReason || "-"}\n⏱️ ${duration(Date.now() - target.afk)}`,
+          tl("hnd.handler.2", { v: numberOf(jid), v1: target.afkReason || "-", v2: duration(Date.now() - target.afk) }),
           { mentions: [jid] },
         );
       }
@@ -144,10 +150,10 @@ const antilink = async (env, next) => {
 
   if (warns >= MAX_WARN) {
     delete chat.warnLink[ctx.senderId];
-    await ctx.reply(`🚫 ${tag} dikeluarkan karena ${MAX_WARN}x mengirim link.`, { quoted: false, mentions });
+    await ctx.reply(tl("hnd.handler.3", { tag, MAX_WARN }), { quoted: false, mentions });
     sock.groupParticipantsUpdate(ctx.chatId, [ctx.senderId], "remove").catch(() => {});
   } else {
-    ctx.reply(`⚠️ *Peringatan ${warns}/${MAX_WARN}* — ${tag}, dilarang mengirim link!`, { quoted: false, mentions });
+    ctx.reply(tl("hnd.handler.4", { warns, MAX_WARN, tag }), { quoted: false, mentions });
   }
   db.save("groups");
 };
@@ -180,8 +186,8 @@ const commands = async (env, next) => {
 
   const plugin = registry.resolve(ctx.command);
   if (!plugin) {
-    const guess = config.features?.cmdSuggest && !ctx.fromMe ? closest(ctx.command, registry.names) : null;
-    if (guess) ctx.reply(`❓ Command *${ctx.prefix}${ctx.command}* tidak ditemukan.\n💡 Maksudmu *${ctx.prefix}${guess}*?`);
+    const guess = config.features?.cmdSuggest && !ctx.fromMe ? closest(ctx.command, registry.primaryNames) : null;
+    if (guess) ctx.reply(tl("hnd.handler.5", { prefix: ctx.pfx, command: ctx.command, prefix1: ctx.pfx, guess }));
     return;
   }
 
@@ -190,11 +196,11 @@ const commands = async (env, next) => {
 
 // Sapaan untuk owner di grup — berjalan sendiri, tidak menahan alur pesan.
 const ownerGreet = (env, next) => {
-  greetOwner(env).catch((err) => logger.warn(`Sapaan owner gagal: ${err.message}`));
+  greetOwner(env).catch((err) => logger.warn(`Owner greeting failed: ${err.message}`));
   return next();
 };
 
-const middleware = [identity, gate, exp, ownerGreet, afk, antilink, autoreply, registration, commands];
+const middleware = [identity, gate, antiSpam, exp, ownerGreet, afk, antilink, autoreply, registration, commands];
 const run = (env, i = 0) => middleware[i]?.(env, () => run(env, i + 1));
 
 export const handleMessages = (sock) => async ({ messages, type }) => {

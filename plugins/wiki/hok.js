@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { collectMedia, profileLines } from "#lib/extract";
 import { truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 // GET /wiki/honor-of-kings?name=…   (ubah nama parameter di sini bila API memakai nama lain)
 const PATH = "/wiki/honor-of-kings";
@@ -16,7 +17,7 @@ export default definePlugin({
   async run({ ctx }) {
     const name = ctx.argsStr || ctx.quotedText;
     if (!name) {
-      return ctx.reply(`❌ Tulis nama karakter.\nContoh: *${ctx.prefix}hok Luban*`, {
+      return ctx.reply(tl("wiki.hok.1", { prefix: ctx.pfx }), {
         preview: { title: "Honor of Kings", body: "Wiki karakter" },
       });
     }

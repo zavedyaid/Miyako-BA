@@ -4,6 +4,8 @@
   "number": "",
   "version": "1.0.0",
   "prefix": "^[.]",
+  "language": "en",
+  "backup": { "auto": true, "everyHours": 6, "keep": 10, "sendToOwner": true },
   "timezone": "Asia/Jakarta",
   "newsletterJid": "120363404577029184@newsletter",
   "channel": "https://whatsapp.com/channel/0029VbC6Qmr4dTnGB19pok0Y",

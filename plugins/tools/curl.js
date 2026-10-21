@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { parseCurl } from "#lib/curl";
 import { presentResponse } from "#lib/httpview";
 import { safeFetch } from "#lib/http";
+import { t as tl } from "#lib/i18n";
 
 /*
  * .curl <perintah curl>  — tempel perintah curl apa adanya (awalan "curl" boleh dihilangkan).
@@ -23,11 +24,11 @@ export default definePlugin({
     if (!input) {
       return ctx.reply(
         [
-          `🌐 *${ctx.prefix}curl* — permintaan HTTP ala curl`,
-          `• ${ctx.prefix}curl https://api.github.com/users/octocat`,
-          `• ${ctx.prefix}curl -X POST https://httpbin.org/post -H "Content-Type: application/json" -d '{"a":1}'`,
-          `• ${ctx.prefix}curl -I https://example.com   (header saja)`,
-          "Opsi: -X -H -d --json -F -u -A -e -b -G -I -i -m -o",
+          tl("cu3.1", { pfx: ctx.pfx }),
+          tl("cu3.2", { pfx: ctx.pfx }),
+          tl("cu3.3", { pfx: ctx.pfx }),
+          tl("tool.curl.1", { prefix: ctx.pfx }),
+          tl("cu3.4"),
         ].join("\n"),
       );
     }

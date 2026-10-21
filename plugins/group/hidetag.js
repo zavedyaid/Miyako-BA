@@ -1,5 +1,6 @@
 import { definePlugin } from "#lib/plugins";
 import { mentionJid } from "#lib/targets";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Kirim pesan yang me-mention semua anggota tanpa menampilkan daftarnya.
@@ -17,7 +18,7 @@ export default definePlugin({
   async run({ ctx, group }) {
     const { meta } = await group();
     const mentions = (meta?.participants ?? []).map(mentionJid);
-    if (!mentions.length) return ctx.reply("❌ Gagal membaca daftar anggota grup.");
+    if (!mentions.length) return ctx.reply(tl("grp.hidetag.1"));
 
     const media = ctx.hasMedia ? await ctx.fetchMedia().catch(() => null) : null;
     const text = ctx.argsStr || ctx.quotedText || "";
@@ -25,7 +26,7 @@ export default definePlugin({
     if (media && ["image", "video"].includes(media.kind)) {
       return ctx.reply({ [media.kind]: media.buffer, caption: text || undefined, mentions }, { quoted: false });
     }
-    if (!text) return ctx.reply(`❌ Contoh: *${ctx.prefix}hidetag halo semua*\nAtau reply pesan / gambar dengan *${ctx.prefix}hidetag*`);
+    if (!text) return ctx.reply(tl("grp.hidetag.2", { prefix: ctx.pfx, prefix1: ctx.pfx }));
 
     await ctx.reply({ text, mentions }, { quoted: false, preview: false });
   },

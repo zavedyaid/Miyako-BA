@@ -1,0 +1,33 @@
+<style>*{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;box-sizing:border-box}
+body{margin:0;background:transparent;font-family:Arial,sans-serif;color:#eee;touch-action:none}
+.w{max-width:420px;margin:auto;padding:14px}.p{background:rgba(14,17,29,.94);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.h b{font-size:18px}.sc{display:flex;gap:8px}.sc div{background:#1b2236;border-radius:10px;padding:5px 10px;text-align:center;font-size:11px;color:#9fb0d6}.sc span{display:block;font-size:16px;color:#fff;font-weight:bold}
+#g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#161c2e;padding:8px;border-radius:12px;aspect-ratio:1}
+.t{border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;background:#222a40;color:#fff;font-size:clamp(16px,7vw,30px)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px auto 0;max-width:210px}.pad button{padding:10px 0;font-size:20px;border:0;border-radius:10px;background:#26304d;color:#fff}.pad .e{visibility:hidden}
+#m{margin-top:10px;font-size:13px;color:#cdd6f4;text-align:center;min-height:18px}
+.c{margin-top:10px;display:none}.c textarea{width:100%;height:64px;border-radius:10px;border:1px solid #2c3556;background:#10162a;color:#9fe2a8;font-size:11px;padding:8px;user-select:text;-webkit-user-select:text}
+.c button,.r{margin-top:6px;width:100%;padding:11px;border:0;border-radius:10px;background:#3b82f6;color:#fff;font-weight:bold;font-size:14px}.r{background:#26304d;margin-top:8px}
+</style><body><div class="w"><div class="p">
+<div class="h"><b>🔢 2048 Gold</b><div class="sc"><div>SKOR<span id="s">0</span></div><div>LANGKAH<span id="n">0</span></div></div></div>
+<div id="g"></div>
+<div class="pad"><span class="e"></span><button data-d="0">⬆️</button><span class="e"></span><button data-d="3">⬅️</button><button data-d="2">⬇️</button><button data-d="1">➡️</button></div>
+<div id="m">Geser papan (atau tekan panah) untuk menggabungkan ubin.</div>
+<div class="c" id="c"><textarea id="code" readonly></textarea><button id="cp">Salin kode redeem</button><div style="font-size:12px;color:#9fb0d6;margin-top:6px">Kirim di chat: <b>.redeem &lt;kode&gt;</b> — bot memeriksa permainanmu & memberi hadiah Gold + XP.</div></div>
+<button class="r" id="rs" style="display:none">Main lagi (seed sama, 1× klaim per game)</button>
+</div></div>
+<script>
+const SEED=__SEED__,SID='__SID__';const E=/*ENGINE*/;
+const COL={1:'#3a4466',2:'#46567f',3:'#5b6fa8',4:'#6f86d6',5:'#3f9d8f',6:'#4fbf7f',7:'#c9b44a',8:'#e0953a',9:'#e0673a',10:'#d9454a',11:'#b43fd1',12:'#7a3fd1'};
+let s=E.create(SEED),mv=[],done=false;const $=i=>document.getElementById(i);
+function draw(){const g=$('g');g.innerHTML='';for(const v of s.b){const d=document.createElement('div');d.className='t';if(v){d.textContent=Math.pow(2,v);d.style.background=COL[Math.min(v,12)]||'#7a3fd1'}g.appendChild(d)}$('s').textContent=s.score;$('n').textContent=s.n;
+const code='48~'+SID+'~'+E.enc(SEED,mv);$('code').value=code;$('c').style.display=mv.length>=5?'block':'none';if(E.over(s)){done=true;$('m').textContent='Game over! Salin kode lalu kirim .redeem di chat.';$('rs').style.display='block'}}
+function go(d){if(done)return;if(E.move(s,d)){mv.push(d);draw()}}
+document.querySelectorAll('.pad button').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();go(+b.dataset.d)}));
+document.addEventListener('keydown',e=>{const k={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3}[e.key];if(k!==undefined){e.preventDefault();go(k)}});
+let x0,y0;document.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
+document.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;go(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0))},{passive:true});
+$('cp').onclick=function(){const t=$('code').value;const ok=()=>{this.textContent='Tersalin ✓'};try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}function fb(){try{$('code').select();document.execCommand('copy');ok()}catch(e){$('cp').textContent='Tekan lama kotak kode lalu salin'}}};
+$('rs').onclick=()=>{done=false;s=E.create(SEED);mv=[];$('rs').style.display='none';$('m').textContent='Ronde baru (seed sama). Klaim hanya sekali per game.';draw()};
+draw();
+</script></body>

@@ -5,6 +5,7 @@ Butuh: pillow
 """
 import importlib.util, math, sys
 from PIL import Image, ImageDraw, ImageFilter
+from card_labels import tr, out_path
 
 spec = importlib.util.spec_from_file_location("kit", "tools/build-card-bgs.py")
 K = importlib.util.module_from_spec(spec); spec.loader.exec_module(K)
@@ -137,24 +138,24 @@ CY = (110, 215, 255)
 # profile
 c, L, d = base((70, 80, 1200, 1000), CY)
 track(d, (132, 118), "PLAYER PROFILE", font(BOLD, 54), (255, 255, 255, 255), 4)
-track(d, (134, 184), "MIYAKO - BA   ·   KARTU PEMAIN", font(MED, 23), (150, 195, 255, 255), 3)
-badge(d, 950, 124, 200, CY); track(d, (982, 139), "PROFIL", font(BOLD, 24), CY + (255,), 2); divider(d, 130, 1140, 236)
+track(d, (134, 184), tr("MIYAKO - BA   ·   KARTU PEMAIN"), font(MED, 23), (150, 195, 255, 255), 3)
+badge(d, 950, 124, 200, CY); track(d, (982, 139), tr("PROFIL"), font(BOLD, 24), CY + (255,), 2); divider(d, 130, 1140, 236)
 L, d = ring(L, d, CY, 130, 280, 300)
-field(d, 490, 268, "NAMA", 1140); field(d, 490, 398, "UMUR", 700); field(d, 730, 398, "GENDER", 1140); field(d, 490, 528, "NO. WHATSAPP", 1140)
+field(d, 490, 268, tr("NAMA"), 1140); field(d, 490, 398, tr("UMUR"), 700); field(d, 730, 398, "GENDER", 1140); field(d, 490, 528, tr("NO. WHATSAPP"), 1140)
 track(d, (130, 708), "LEVEL", LAB, LABC, 3); trk(d, 130, 772, 1010, 26)
-field(d, 130, 828, "LIMIT", 560); field(d, 620, 828, "GOLD", 1140); barcode(d, 905, 1138, 5); finish(c, L, "config/cards/profile-bg.png")
+field(d, 130, 828, "LIMIT", 560); field(d, 620, 828, "GOLD", 1140); barcode(d, 905, 1138, 5); finish(c, L, out_path("config/cards/profile-bg.png"))
 
 # hero
 c, L, d = base((70, 80, 1200, 1000), (255, 205, 90), glass=(24, 18, 40), tint=(120, 80, 10), amt=.12)
 track(d, (132, 118), "HERO STATUS", font(BOLD, 54), (255, 255, 255, 255), 4)
-track(d, (134, 184), "MIYAKO - BA   ·   KARTU PETUALANG", font(MED, 23), (255, 225, 160, 255), 3)
+track(d, (134, 184), tr("MIYAKO - BA   ·   KARTU PETUALANG"), font(MED, 23), (255, 225, 160, 255), 3)
 badge(d, 950, 124, 200, (255, 205, 90)); track(d, (984, 139), "RPG", font(BOLD, 24), (255, 205, 90, 255), 2); divider(d, 130, 1140, 236)
 L, d = ring(L, d, (255, 205, 90), 130, 280, 300)
-field(d, 490, 268, "NAMA", 1140); field(d, 490, 388, "LEVEL", 640); field(d, 670, 388, "GELAR", 1140)
+field(d, 490, 268, tr("NAMA"), 1140); field(d, 490, 388, "LEVEL", 640); field(d, 670, 388, tr("GELAR"), 1140)
 for y, lab in [(508, "HP"), (598, "STAMINA"), (688, "XP")]: track(d, (490, y), lab, LAB, LABC, 3); trk(d, 490, y+38, 650, 22)
 field(d, 490, 770, "WEAPON", 800); field(d, 830, 770, "ARMOR", 1140)
 field(d, 130, 708, "ATK", 270); field(d, 290, 708, "DEF", 430); field(d, 130, 828, "GOLD", 270); field(d, 290, 828, "DIAMOND", 430)
-barcode(d, 905, 1138, 6); finish(c, L, "config/cards/hero-bg.png")
+barcode(d, 905, 1138, 6); finish(c, L, out_path("config/cards/hero-bg.png"))
 
 # grid (inventory / shop)
 c, L, d = base((70, 80, 1520, 1000), CY)
@@ -163,20 +164,20 @@ for i in range(4): d.rounded_rectangle((130+i*330, 236, 430+i*330, 298), 28, fil
 for i in range(12):
     sx, sy = 110+(i % 3)*450, 330+(i//3)*150
     d.rounded_rectangle((sx, sy, sx+410, sy+130), 24, fill=(255, 255, 255, 20), outline=(190, 220, 255, 80), width=2)
-barcode(d, 1225, 1458, 7); finish(c, L, "config/cards/grid-bg.png")
+barcode(d, 1225, 1458, 7); finish(c, L, out_path("config/cards/grid-bg.png"))
 
 # result
 c, L, d = base((70, 80, 1200, 1000), CY)
 divider(d, 130, 1140, 236); d.rounded_rectangle((930, 124, 1150, 184), radius=30, fill=(255, 255, 255, 26), outline=(190, 220, 255, 150), width=2)
 L, d = ring(L, d, CY, 130, 280, 300)
-track(d, (490, 262), "HASIL", LAB, LABC, 3); d.line((490, 292, 1140, 292), fill=(170, 205, 255, 70), width=2)
+track(d, (490, 262), tr("HASIL"), LAB, LABC, 3); d.line((490, 292, 1140, 292), fill=(170, 205, 255, 70), width=2)
 for y, lab in [(708, "HP"), (808, "XP")]: track(d, (130, y), lab, LAB, LABC, 3); trk(d, 130, y+36, 300, 22)
-barcode(d, 905, 1138, 8); finish(c, L, "config/cards/result-bg.png")
+barcode(d, 905, 1138, 8); finish(c, L, out_path("config/cards/result-bg.png"))
 
 # atm (kartu bank): panel lebar, kartu kredit di kiri, saldo di kanan
 c, L, d = base((70, 80, 1850, 1000), (255, 205, 90), glass=(14, 20, 44))
 track(d, (132, 118), "MIYAKO ATM", font(BOLD, 54), (255, 255, 255, 255), 4)
-track(d, (134, 184), "BANK MIYAKO   ·   SIMPAN  ·   TARIK  ·   TRANSFER", font(MED, 23), (255, 225, 160, 255), 3)
+track(d, (134, 184), tr("BANK MIYAKO   ·   SIMPAN  ·   TARIK  ·   TRANSFER"), font(MED, 23), (255, 225, 160, 255), 3)
 badge(d, 1580, 124, 220, (255, 205, 90)); track(d, (1620, 139), "SECURE", font(BOLD, 24), (255, 205, 90, 255), 2); divider(d, 130, 1790, 236)
 CX, CYY, CW, CH = 130, 290, 900, 510
 grad = Image.new("RGBA", (CW, CH))
@@ -199,8 +200,8 @@ for i, r_ in enumerate((18, 32, 46)): d.arc((CX + 200 - r_, CYY + 170 - r_, CX +
 d.ellipse((CX + CW - 190, CYY + CH - 120, CX + CW - 90, CYY + CH - 20), fill=(255, 120, 150, 210)); d.ellipse((CX + CW - 140, CYY + CH - 120, CX + CW - 40, CYY + CH - 20), fill=(255, 205, 90, 210))
 track(d, (CX + 60, CYY + 350), "CARD HOLDER", font(MED, 20), (225, 235, 255, 255), 3)
 track(d, (CX + 590, CYY + 350), "MEMBER SINCE", font(MED, 20), (225, 235, 255, 255), 3)
-for (x, y, lab) in [(1130, 268, "SALDO BANK"), (1130, 398, "DOMPET"), (1130, 528, "TOTAL ASET"), (1130, 658, "BUNGA HARIAN"), (1130, 788, "LIMIT BANK")]:
+for (x, y, lab) in [(1130, 268, tr("SALDO BANK")), (1130, 398, tr("DOMPET")), (1130, 528, tr("TOTAL ASET")), (1130, 658, tr("BUNGA HARIAN")), (1130, 788, tr("LIMIT BANK"))]:
     field(d, x, y, lab, 1790)
 trk(d, 1130, 900, 660, 22)
 barcode(d, 1555, 1788, 9)
-finish(c, L, "config/cards/atm-bg.png")
+finish(c, L, out_path("config/cards/atm-bg.png"))

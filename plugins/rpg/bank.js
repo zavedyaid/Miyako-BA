@@ -1,7 +1,10 @@
+import { t } from "#lib/i18n";
 import { db } from "#lib/database";
 import { definePlugin } from "#lib/plugins";
 import * as game from "#lib/rpg";
 import { sendAtm } from "#lib/rpgui";
+import { requestAtm, submitPin } from "#lib/atmflow";
+import { t as tl } from "#lib/i18n";
 
 const fmt = (n) => Number(n).toLocaleString("id-ID");
 
@@ -18,16 +21,16 @@ const norm = (text) => String(text ?? "").replace(/[^a-z0-9]/gi, "").toUpperCase
  * Nomor Serial (SN) ada di .profil / .kartu. Setelah Success, ATM terbuka 10 menit untuk deposit / tarik / transfer.
  */
 const needAtm = (env, r) => {
-  const p = env.ctx.prefix;
+  const p = env.ctx.pfx;
   if (game.hasAtm(r)) return false;
-  env.ctx.reply(`🏧 Kamu belum punya *Kartu ATM*.\nBeli dulu: *${p}buy atm* (${fmt(game.ITEMS.atm.buy)} G)\nCek harga & stok di *${p}toko*.`);
+  env.ctx.reply(tl("rpg.bank.1", { p, v: fmt(game.ITEMS.atm.buy), p1: p }));
   return true;
 };
 const needOpen = (env, r) => {
-  const { ctx } = env, p = ctx.prefix;
+  const { ctx } = env, p = ctx.pfx;
   if (needAtm(env, r)) return true;
   if (game.atmIsOpen(ctx.senderId)) return false;
-  ctx.reply(`🔒 ATM masih terkunci.\nBuka dulu: *${p}atm <Nomor Serial> <PIN>*\n_SN ada di ${p}profil / ${p}kartu · PIN diatur lewat chat pribadi: ${p}setpin_`);
+  ctx.reply(`🔒 ATM masih terkunci.\nKetik *${p}atm* lalu masukkan PIN di chat pribadi.\n_Belum daftar? *${p}register atm*_`);
   return true;
 };
 
@@ -39,34 +42,30 @@ const atm = definePlugin({
   description: "ATM: buka dengan Nomor Serial + PIN (wajib beli Kartu ATM dulu)",
   usage: "atm <Nomor Serial> <PIN>",
   async run(env) {
-    const { ctx, user } = env, p = ctx.prefix;
+    const { ctx, user } = env, p = ctx.pfx;
     const { r, gain } = open(env);
     if (needAtm(env, r)) return;
 
     const [sn, pin] = ctx.args;
-    if (!sn || !pin) {
-      return ctx.reply(
-        [
-          "🏧 *ATM MIYAKO*",
-          "",
-          `Ketik: *${p}atm <Nomor Serial> <PIN>*`,
-          `• Nomor Serial → lihat di *${p}profil* atau *${p}kartu*`,
-          game.hasPin(r) ? "• PIN → PIN yang kamu atur sebelumnya" : `• PIN → atur dulu di *chat pribadi*: *${p}setpin <4-6 angka>*`,
-        ].join("\n"),
-      );
+    // Sesi masih terbuka → .atm tanpa argumen langsung menampilkan ATM (tidak perlu SN + PIN lagi)
+    if (!sn && !pin && game.atmIsOpen(ctx.senderId)) {
+      db.save("users");
+      return sendAtm(env, r, `🏧 ATM masih terbuka.\n${interestNote(gain) || `${p}deposit <jumlah|all> · ${p}tarik <jumlah|all> · ${p}transfer @tag <jumlah>`}`.trim());
     }
+    // .atm saja → alur baru: PIN diisi lewat chat pribadi (kartu ATM muncul di grup tadi)
+    if (!sn || !pin) return requestAtm(env, r);
 
     // Pesan berisi PIN: hapus bila bot bisa (di grup, hanya kalau bot admin).
     if (ctx.isGroup) ctx.delete().catch(() => {});
 
     const wait = game.pinLockedMinutes(r);
-    if (wait) return ctx.reply(`⛔ Terlalu banyak salah PIN. ATM terkunci *${wait} menit* lagi.`);
-    if (!game.hasPin(r)) return ctx.reply(`🔑 Kamu belum punya PIN.\nAtur di *chat pribadi* bot: *${p}setpin <4-6 angka>*`);
-    if (norm(sn) !== norm(user.reg?.sn)) return ctx.reply(`❌ Nomor Serial salah.\nCek di *${p}profil* atau *${p}kartu*.`);
+    if (wait) return ctx.reply(tl("rpg.bank.7", { wait }));
+    if (!game.hasPin(r)) return ctx.reply(tl("rpg.bank.8", { p }));
+    if (norm(sn) !== norm(user.reg?.sn)) return ctx.reply(tl("rpg.bank.9", { p, p1: p }));
     if (!game.checkPin(r, pin)) {
       const left = game.pinFailed(r);
       db.save("users");
-      return ctx.reply(left ? `❌ PIN salah. Sisa percobaan: *${left}*` : "⛔ PIN salah 5×. ATM terkunci *10 menit*.");
+      return ctx.reply(left ? tl("rpg.bank.10", { left }) : tl("rpg.bank.11"));
     }
 
     game.pinOk(r);
@@ -74,6 +73,16 @@ const atm = definePlugin({
     db.save("users");
     await sendAtm(env, r, `✅ Success! ATM terbuka 10 menit.\n${interestNote(gain) || `${p}deposit <jumlah|all> · ${p}tarik <jumlah|all> · ${p}transfer @tag <jumlah>`}`.trim());
   },
+});
+
+const atmpin = definePlugin({
+  name: "atmpin",
+  aliases: ["kodepin"],
+  category: "rpg",
+  access: { private: true },
+  description: "Masukkan PIN untuk membuka ATM (chat pribadi, setelah .atm di grup)",
+  usage: "atmpin <PIN>",
+  run: (env) => submitPin(env),
 });
 
 const setpin = definePlugin({
@@ -84,26 +93,26 @@ const setpin = definePlugin({
   usage: "setpin <PIN baru> · setpin <PIN lama> <PIN baru>",
   access: { private: true },
   async run(env) {
-    const { ctx } = env, p = ctx.prefix;
+    const { ctx } = env, p = ctx.pfx;
     const r = game.getRpg(env.user);
     const [a, b] = ctx.args;
-    if (!a) return ctx.reply(game.hasPin(r) ? `🔑 Ganti PIN: *${p}setpin <PIN lama> <PIN baru>*` : `🔑 Atur PIN ATM (4–6 angka): *${p}setpin 123456*`);
+    if (!a) return ctx.reply(game.hasPin(r) ? tl("rpg2.bank.1", { p }) : tl("bk3.1", { p }));
 
     if (game.hasPin(r)) {
       const wait = game.pinLockedMinutes(r);
-      if (wait) return ctx.reply(`⛔ Terlalu banyak salah PIN. Coba lagi *${wait} menit* lagi.`);
-      if (!b) return ctx.reply(`🔑 Kamu sudah punya PIN. Ganti: *${p}setpin <PIN lama> <PIN baru>*`);
+      if (wait) return ctx.reply(tl("rpg.bank.12", { wait }));
+      if (!b) return ctx.reply(tl("rpg.bank.13", { p }));
       if (!game.checkPin(r, a)) {
         const left = game.pinFailed(r);
         db.save("users");
-        return ctx.reply(left ? `❌ PIN lama salah. Sisa percobaan: *${left}*` : "⛔ PIN salah 5×. Dikunci *10 menit*.");
+        return ctx.reply(left ? tl("rpg.bank.14", { left }) : tl("rpg.bank.15"));
       }
     }
     const pin = game.hasPin(r) ? b : a;
-    if (!game.validPin(pin)) return ctx.reply("❌ PIN harus *4–6 angka* (contoh: 123456).");
+    if (!game.validPin(pin)) return ctx.reply(tl("rpg.bank.16"));
     game.setPin(r, pin);
     db.save("users");
-    await ctx.reply(`✅ PIN ATM tersimpan.\nBuka ATM: *${p}atm <Nomor Serial> <PIN>* (SN di *${p}profil* / *${p}kartu*)`);
+    await ctx.reply(tl("rpg.bank.17", { p, p1: p, p2: p }));
   },
 });
 
@@ -118,10 +127,10 @@ const dep = definePlugin({
     const { ctx } = env, { r, gain } = open(env);
     if (needOpen(env, r)) return;
     const want = game.parseAmount(ctx.args[0], r.gold);
-    if (!want) return ctx.reply(`🏧 Berapa? Contoh: *${ctx.prefix}deposit 1000*, *${ctx.prefix}deposit 2k*, *${ctx.prefix}deposit all*`);
+    if (!want) return ctx.reply(tl("rpg.bank.18", { prefix: ctx.pfx, prefix1: ctx.pfx, prefix2: ctx.pfx }));
     const room = game.bankCap(r) - r.bank;
-    if (room <= 0) return ctx.reply(`🏦 Bankmu penuh (limit ${fmt(game.bankCap(r))}). Naik level untuk menambah limit.`);
-    if (!r.gold) return ctx.reply("👛 Dompetmu kosong.");
+    if (room <= 0) return ctx.reply(tl("rpg.bank.19", { v: fmt(game.bankCap(r)) }));
+    if (!r.gold) return ctx.reply(tl("rpg2.bank.2"));
     const amt = game.deposit(r, want);
     db.save("users");
     await sendAtm(env, r, `Setor ${fmt(amt)} G berhasil${amt < want ? " (dibatasi saldo / limit)" : ""}. ${interestNote(gain)}`.trim());
@@ -139,8 +148,8 @@ const wd = definePlugin({
     const { ctx } = env, { r, gain } = open(env);
     if (needOpen(env, r)) return;
     const want = game.parseAmount(ctx.args[0], r.bank);
-    if (!want) return ctx.reply(`🏧 Berapa? Contoh: *${ctx.prefix}tarik 1000*, *${ctx.prefix}tarik all*`);
-    if (!r.bank) return ctx.reply("🏦 Saldo banknya kosong.");
+    if (!want) return ctx.reply(tl("rpg.bank.20", { prefix: ctx.pfx, prefix1: ctx.pfx }));
+    if (!r.bank) return ctx.reply(tl("rpg2.bank.3"));
     const amt = game.withdraw(r, want);
     db.save("users");
     await sendAtm(env, r, `Tarik ${fmt(amt)} G berhasil. ${interestNote(gain)}`.trim());
@@ -148,49 +157,47 @@ const wd = definePlugin({
 });
 
 const WALLET = /^(dompet|wallet|gold)$/i, BANK = /^(bank|atm|rekening)$/i;
-const where = (w) => (w === "bank" ? "bank" : "dompet");
+const where = (w) => t(w === "bank" ? "tf.bank" : "tf.wallet");
 
 const transfer = definePlugin({
   name: "transfer",
   aliases: ["tf", "kirim"],
   category: "rpg",
   access: { group: true },
-  description: "Kirim gold dari dompet atau bank ke dompet / bank pemain lain (biaya 2%)",
-  usage: "transfer @tag <jumlah|all> [dompet|bank] [dompet|bank]",
+  description: "Send Gold from your wallet or bank to another player's wallet / bank (2% fee)",
+  usage: "transfer @tag <amount|all> [wallet|bank] [wallet|bank]",
   async run(env) {
-    const { ctx } = env, p = ctx.prefix, { r } = open(env);
+    const { ctx } = env, p = ctx.pfx, { r } = open(env);
     if (needOpen(env, r)) return;
     const targetId = ctx.mentionedJid[0] ?? ctx.quotedSender;
     const target = targetId && db.users[targetId];
-    if (!target || targetId === ctx.senderId) {
-      return ctx.reply(`💸 Tag / reply orangnya.\nContoh: *${p}tf @tag 1000* (dari dompet)\n*${p}tf @tag 1000 bank* (dari bank ke bank)\n*${p}tf @tag 1000 bank dompet* (dari bank ke dompet tujuan)`);
-    }
+    if (!target || targetId === ctx.senderId) return ctx.reply(t("tf.noTarget", { p }));
 
     // Kata pertama = sumber saldo, kata kedua = tujuan (bila tidak ditulis, tujuan = sama dengan sumber).
     const places = ctx.args.filter((a) => WALLET.test(a) || BANK.test(a)).map((a) => (BANK.test(a) ? "bank" : "wallet"));
     const from = places[0] ?? "wallet", to = places[1] ?? from;
-    const balance = from === "bank" ? r.bank : r.gold;
+    const balance = from === "bank" ? r.bank : r.gold, icon = from === "bank" ? "🏦" : "👛";
     const raw = ctx.args.find((a) => /^(\d|all$|semua$|habis$)/i.test(a));
-    if (!raw) return ctx.reply("💸 Jumlahnya berapa?");
+    if (!raw) return ctx.reply(t("tf.howMuch"));
     const all = /^(all|semua|habis)$/i.test(raw);
     const amount = all ? Math.floor(balance / 1.02) : game.parseAmount(raw, balance);
-    if (!amount) return ctx.reply(all ? `👛 Saldo ${where(from)}mu kosong.` : "💸 Jumlahnya berapa?");
+    if (!amount) return ctx.reply(all ? t("tf.empty", { icon, where: where(from) }) : t("tf.howMuch"));
 
     const fee = Math.max(1, Math.round(amount * 0.02));
-    if (balance < amount + fee) return ctx.reply(`${from === "bank" ? "🏦" : "👛"} Saldo ${where(from)} kurang. Butuh *${fmt(amount + fee)}* (termasuk biaya 2%), saldo ${where(from)}mu ${fmt(balance)}.`);
+    if (balance < amount + fee) return ctx.reply(t("tf.short", { icon, where: where(from), need: fmt(amount + fee), have: fmt(balance) }));
 
     const tr = game.getRpg(target);
     if (to === "bank") {
       game.accrue(tr);
       const room = game.bankCap(tr) - tr.bank;
-      if (amount > room) return ctx.reply(`🏦 Bank tujuan hanya muat ${fmt(Math.max(0, room))} lagi (limit ${fmt(game.bankCap(tr))}). Coba kirim ke *dompet*: *${p}tf @tag ${amount} ${where(from)} dompet*`);
+      if (amount > room) return ctx.reply(t("tf.bankRoom", { room: fmt(Math.max(0, room)), cap: fmt(game.bankCap(tr)), p, amount, from: where(from) }));
     }
 
     if (from === "bank") r.bank -= amount + fee; else r.gold -= amount + fee;
     if (to === "bank") tr.bank += amount; else tr.gold += amount;
     db.save("users");
-    await sendAtm(env, r, `Transfer ${fmt(amount)} G (${where(from)} → ${where(to)}) ke ${target.reg?.name ?? "pemain"} (biaya ${fmt(fee)} G)`, [targetId]);
+    await sendAtm(env, r, t("tf.done", { amount: fmt(amount), from: where(from), to: where(to), name: target.reg?.name ?? t("tf.player"), fee: fmt(fee) }), [targetId]);
   },
 });
 
-export default [atm, setpin, dep, wd, transfer];
+export default [atm, atmpin, setpin, dep, wd, transfer];

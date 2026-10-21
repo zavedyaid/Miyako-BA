@@ -2,6 +2,7 @@ import { definePlugin } from "#lib/plugins";
 import { api, ApiError } from "#lib/api";
 import { songs } from "#lib/songs";
 import { bufferThumbnail, getBuffer, truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Alur 2 & 3 dari 3:  .ytplay <link YouTube>   (dipanggil otomatis saat lagu dipilih dari list .play)
@@ -60,8 +61,8 @@ export default definePlugin({
   async run({ ctx }) {
     const url = (ctx.argsStr || ctx.quotedText || "").match(LINK)?.[0];
     if (!url) {
-      return ctx.reply(`❌ Pakai *${ctx.prefix}play <judul lagu>* lalu pilih lagunya dari list.`, {
-        preview: { title: "YouTube Play", body: "Cari lagu" },
+      return ctx.reply(tl("dl.ytplay.1", { prefix: ctx.pfx }), {
+        preview: { title: "YouTube Play", body: tl("dl.ytplay.2") },
       });
     }
 

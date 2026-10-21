@@ -4,6 +4,7 @@ import { ApiError } from "#lib/api";
 import { sendInteractive } from "#lib/interactive";
 import { songs } from "#lib/songs";
 import { formatNumber, getBuffer, truncate } from "#lib/utils";
+import { t as tl } from "#lib/i18n";
 
 /*
  * Alur 1 dari 3:  .play <judul>
@@ -31,8 +32,8 @@ export default definePlugin({
   async run({ ctx, sock, config }) {
     const query = ctx.argsStr || ctx.quotedText;
     if (!query) {
-      return ctx.reply(`❌ Tulis judul lagu.\nContoh: *${ctx.prefix}play Virgoun Surat Cinta Untuk Starla*`, {
-        preview: { title: "YouTube Play", body: "Cari lagu" },
+      return ctx.reply(tl("dl.play.1", { prefix: ctx.pfx }), {
+        preview: { title: "YouTube Play", body: tl("dl.play.2") },
       });
     }
 
@@ -62,7 +63,7 @@ export default definePlugin({
       const rows = results.map((r, i) => ({
         title: truncate(`${i + 1}. ${clean(r.title)}`, ROW_TITLE_MAX),
         description: truncate([r.author?.name ?? "-", r.duration ?? "-", r.views > 0 && `${formatNumber(r.views)} views`].filter(Boolean).join(" • "), 72),
-        id: `${ctx.prefix}ytplay ${r.url}`,
+        id: `${ctx.pfx}ytplay ${r.url}`,
       }));
 
       // Caption hanya judul pencarian; daftar lagu ada di tombol list (tidak diulang di teks).
@@ -71,7 +72,7 @@ export default definePlugin({
       await sendInteractive(sock, ctx.chatId, {
         text,
         image,
-        buttons: [{ type: "list", text: "Pilih Lagu", sections: [{ title: "Hasil pencarian", rows }] }],
+        buttons: [{ type: "list", text: tl("dl.play.3"), sections: [{ title: tl("dl.play.4"), rows }] }],
         mentions: [ctx.senderId],
         quoted: await ctx.quote(),
       });
