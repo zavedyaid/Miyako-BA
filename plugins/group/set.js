@@ -346,6 +346,7 @@ const helpText = (pfx, isOwner) =>
 
 export default definePlugin({
   name: "set",
+  ownHelp: true,
   aliases: ["setting", "atur", ...Object.keys(PRESETS)],
   category: "group",
   description: "Atur grup (set group …) atau bot (set owner …)",

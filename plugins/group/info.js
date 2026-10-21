@@ -10,8 +10,8 @@ import { t as tl } from "#lib/i18n";
 const INVITE = "https://chat.whatsapp.com/";
 
 const open = definePlugin({
-  name: "open",
-  aliases: ["buka", "opengc"],
+  name: "opengc",
+  aliases: ["opengrup"],
   category: "group",
   description: "Buka grup — semua anggota bisa chat",
   access: { group: true, admin: true, botAdmin: true },

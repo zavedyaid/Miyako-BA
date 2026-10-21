@@ -20,6 +20,7 @@ const shop = definePlugin({
 
 const buy = definePlugin({
   name: "buy",
+  ownHelp: true,
   aliases: ["beli"],
   category: "rpg",
   access: { group: true },
@@ -63,27 +64,6 @@ const sell = definePlugin({
     const n = Math.min(amount(ctx.args[1], have), have), total = game.ITEMS[id].sell * n;
     game.takeItem(r, id, n); r.gold += total; db.save("users");
     await sendResult(env, r, { title: "PENJUALAN", subtitle: "Item terjual", badge: "TERJUAL", accent: "0xffd566", rows: [game.itemRow(id, n), { icon: "coin", text: `+${fmt(total)} Gold`, sub: tl("rpg2.shop.10", { v: fmt(r.gold) }) }], ok: true });
-  },
-});
-
-const use = definePlugin({
-  name: "pakai",
-  aliases: ["use", "minum"],
-  category: "rpg",
-  access: { group: true },
-  description: "Pakai ramuan (HP / stamina)",
-  usage: "pakai <id> [jumlah]",
-  async run({ ctx, user, db }) {
-    const r = game.getRpg(user), id = game.findItem(ctx.args[0] ?? ""), it = game.ITEMS[id];
-    if (!id || it.type !== "potion") return ctx.reply(tl("rpg.shop.11", { prefix: ctx.pfx }));
-    const n = Math.min(Math.max(1, Number(ctx.args[1]) || 1), 20);
-    if (game.count(r, id) < n) return ctx.reply(tl("rpg.shop.12", { name: it.name, v: game.count(r, id) }));
-    const { maxHp } = game.statsOf(r);
-    game.takeItem(r, id, n);
-    if (it.heal) r.hp = Math.min(maxHp, r.hp + it.heal * n);
-    if (it.stamina) r.stamina = Math.min(game.STAMINA_MAX, r.stamina + it.stamina * n);
-    db.save("users");
-    await ctx.reply(tl("rpg.shop.13", { name: it.name, n, hp: r.hp, maxHp, stamina: r.stamina, STAMINA_MAX: game.STAMINA_MAX }));
   },
 });
 
@@ -139,4 +119,4 @@ const craft = definePlugin({
   },
 });
 
-export default [shop, buy, sell, use, equip, unequip, craft];
+export default [shop, buy, sell, equip, unequip, craft];

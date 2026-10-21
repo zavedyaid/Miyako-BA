@@ -213,6 +213,7 @@ const toggle = (on) => async (env) => {
 
 const on = definePlugin({
   name: "on",
+  ownHelp: true,
   aliases: ["enable", "aktifkan"],
   category: "group",
   description: "Aktifkan fitur grup (on …) atau fitur bot (on owner …)",
@@ -222,6 +223,7 @@ const on = definePlugin({
 
 const off = definePlugin({
   name: "off",
+  ownHelp: true,
   aliases: ["disable", "matikan"],
   category: "group",
   description: "Matikan fitur grup (off …) atau fitur bot (off owner …)",

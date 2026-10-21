@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { CHESS_LEVELS, DAILY, chessProgress, issue, newSeed } from "#lib/gamecodes";
 import { engineSource } from "#lib/gameengine";
+import { bandText, levelBand } from "#lib/prize";
 import { logger } from "#lib/logger";
 import { definePlugin } from "#lib/plugins";
 import { sendHtmlApp } from "#lib/richhtml";
@@ -20,7 +21,7 @@ const firstText = (L) => {
   if (L.first.diamond) bits.push(`💎 ${L.first.diamond}`);
   if (L.first.limit) bits.push(`🎟️ ${L.first.limit}`);
   for (const [id, n] of Object.entries(L.first.items ?? {})) bits.push(`🎁 ${id} x${n}`);
-  return `🪙 +${L.gold * 2}${bits.length ? ` · ${bits.join(" · ")}` : ""}`;
+  return `🪙 +${bandText(levelBand(L.level))}${bits.length ? ` · ${bits.join(" · ")}` : ""}`;
 };
 
 export default definePlugin({
@@ -38,7 +39,7 @@ export default definePlugin({
     const cfg = {
       sid, seed, lang: currentLang(), cleared,
       next: Math.min(8, Math.max(1, ...cleared) + (cleared.length ? 1 : 0)),
-      levels: CHESS_LEVELS.map((L) => L && { name: L.name, gold: L.gold, xp: L.xp, diamond: L.diamond ?? 0, first: firstText(L) }),
+      levels: CHESS_LEVELS.map((L, i) => L && { name: L.name, gold: bandText(levelBand(i)), goldDraw: bandText(levelBand(i), 0.35), xp: L.xp, diamond: L.diamond ?? 0, first: firstText({ ...L, level: i }) }),
     };
     const html = readFileSync(file, "utf8")
       .replace("/*ENGINE*/", () => engineSource("chess-ai"))

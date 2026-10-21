@@ -66,7 +66,7 @@ function shorts(a){let b='';a.forEach(c=>{b+=String.fromCharCode(c&255,c>>8)});r
 function confetti(){const col=['#ffd566','#6fdc8c','#8fa6ff','#ff7a8a','#fff'];for(let i=0;i<46;i++){const c=document.createElement('div');c.className='cf';c.style.left=Math.random()*100+'%';c.style.background=col[i%5];c.style.animationDelay=Math.random()*.8+'s';c.style.animationDuration=1.8+Math.random()*1.6+'s';$('ov').parentNode.appendChild(c);setTimeout(()=>c.remove(),4200)}}
 function end(stt,resigned){over=true;busy=false;const win=stt&&stt.winner===side,draw=stt&&stt.winner===0;const L=CFG.levels[level];
 $('oh').textContent=resigned?T.res:win?T.win:draw?T.draw:T.loss;
-let rw=T.nor;if(win)rw='🪙 '+L.gold+' · ⭐ '+L.xp+(L.diamond?' · 💎 '+L.diamond:'')+(L.first&&CFG.cleared.indexOf(level)<0?'<br>🎁 '+L.first:'');else if(draw)rw='🪙 '+Math.round(L.gold*.35)+' · ⭐ '+Math.round(L.xp*.35);
+let rw=T.nor;if(win)rw='🪙 '+L.gold+' · ⭐ '+L.xp+(L.diamond?' · 💎 '+L.diamond:'')+(L.first&&CFG.cleared.indexOf(level)<0?'<br>🎁 '+L.first:'');else if(draw)rw='🪙 '+L.goldDraw+' · ⭐ '+Math.round(L.xp*.35);
 $('os').innerHTML=T.lv+' '+level+' · '+L.name+' · '+sans.length+' ply<br>'+(win||draw?'<b>'+rw+'</b>':rw);
 if(resigned||!codes.length){$('cd').style.display='none'}else{$('cd').style.display='block';$('ct').value='chs~'+CFG.sid+'~'+level+'~'+(side===1?'w':'b')+'~'+gno+'~'+shorts(codes);$('hn').textContent=T.hint;$('cb').textContent=T.copy}
 setTimeout(()=>{$('ov').style.display='block';if(win)confetti()},resigned?0:650)}

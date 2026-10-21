@@ -3,7 +3,7 @@ import { db } from "#lib/database";
 import { definePlugin } from "#lib/plugins";
 import * as game from "#lib/rpg";
 import { sendAtm } from "#lib/rpgui";
-import { requestAtm, submitPin } from "#lib/atmflow";
+import { hasPending, requestAtm, submitPin } from "#lib/atmflow";
 import { t as tl } from "#lib/i18n";
 
 const fmt = (n) => Number(n).toLocaleString("id-ID");
@@ -36,11 +36,12 @@ const needOpen = (env, r) => {
 
 const atm = definePlugin({
   name: "atm",
+  ownHelp: true,
   aliases: ["bank", "saldo", "rekening"],
   category: "rpg",
   access: { group: true },
-  description: "ATM: buka dengan Nomor Serial + PIN (wajib beli Kartu ATM dulu)",
-  usage: "atm <Nomor Serial> <PIN>",
+  description: "ATM: ketik .atm di grup, lalu ketik PIN-mu langsung di chat pribadi bot (wajib beli Kartu ATM dulu)",
+  usage: "atm",
   async run(env) {
     const { ctx, user } = env, p = ctx.pfx;
     const { r, gain } = open(env);
@@ -75,14 +76,23 @@ const atm = definePlugin({
   },
 });
 
+// PIN diketik LANGSUNG di chat pribadi (angka 4–6 digit, tanpa perintah) setelah .atm di grup.
+// .atmpin <PIN> tetap bisa dipakai (disembunyikan dari menu).
 const atmpin = definePlugin({
   name: "atmpin",
   aliases: ["kodepin"],
   category: "rpg",
+  hidden: true,
   access: { private: true },
-  description: "Masukkan PIN untuk membuka ATM (chat pribadi, setelah .atm di grup)",
+  description: "Masukkan PIN ATM (opsional — PIN cukup diketik langsung di chat pribadi)",
   usage: "atmpin <PIN>",
   run: (env) => submitPin(env),
+  async passive(env) {
+    const { ctx } = env;
+    if (ctx.isGroup || ctx.fromMe || ctx.isCmd || !/^\d{4,6}$/.test((ctx.text ?? "").trim())) return;
+    if (!hasPending(env)) return;
+    return submitPin(env, ctx.text.trim());
+  },
 });
 
 const setpin = definePlugin({

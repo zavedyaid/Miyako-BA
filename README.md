@@ -474,7 +474,7 @@ const hasil = await api.post("/ai/nanobanana", { prompt, imageUrl }); // body JS
 | **stalker** | `.githubstalk`, `.tiktokstalk`, `.youtubestalk`, `.instagramstalk`, `.twitterstalk` |
 | **wiki** | `.hok` (Honor of Kings), `.wuwa` (Wuthering Waves) |
 | **tools** | `.removebg`, `.converter`, `.tempmail`, `.tourl` (unggah media / link file ke CDN → link), `.cekidch` (ID & detail lengkap channel), `.get` `.post` `.put` `.patch` `.delete` `.head` `.curl` (premium) |
-| **group** | `.tagall`, `.hidetag`, `.add`, `.kick` (`.dor`), `.promote`, `.demote`, `.open`, `.close`, `.linkgc`, `.revoke`, `.infogc`, `.listadmin`, `.set`, `.on` / `.off`, `.swgc` |
+| **group** | `.tagall`, `.hidetag`, `.add`, `.kick` (`.dor`), `.promote`, `.demote`, `.opengc`, `.close`, `.linkgc`, `.revoke`, `.infogc`, `.listadmin`, `.set`, `.on` / `.off`, `.swgc` |
 | **ai** (tambahan) | AutoAI Miyako (balas otomatis), `.resetai` |
 | **rpg** | `.inv` (`.inventory` `.tas`), `.rpg` (`.hero`; `.rpg help`), `.atm`, `.setpin`, `.deposit`, `.tarik`, `.transfer`, `.kerja`, `.misi`, `.ojol`, `.gocar`, `.gofood`, `.duel`, `.balap`, `.suitpvp`, `.rampok`, `.buy`, `.sell`, `.berburu`, `.dungeon`, `.nambang`, `.mancing`, `.daily`, `.weekly`, `.peti`, `.toko`, `.beli`, `.jual`, `.pakai`, `.equip`, `.unequip`, `.tempa`, `.leaderboard` (`.top` `.lb`) |
 | **maker** | `.s` / `.stiker` (1:1; `.s fit` tanpa crop) |
@@ -630,7 +630,7 @@ Semua data pemain ada di `users.json` → `rpg`. Aturan, item, monster, harga, d
 | :--- | :--- |
 | Petualangan | `.berburu` (10 stamina) · `.dungeon` (30 stamina, Lv 5+, 3 musuh + boss) · `.nambang` (8) · `.mancing` (6) |
 | Hadiah | `.daily` (streak, peti tiap 7 hari) · `.weekly` (gold + berlian + peti emas) · `.peti <id> [n]` |
-| Tas & perlengkapan | `.inv [hal]` · `.pakai <ramuan>` · `.equip <id>` · `.unequip` |
+| Tas & perlengkapan | `.inv [hal]` · `.use <id> [jumlah]` (`.pakai`; ramuan / pasang senjata-zirah / buka peti) · `.open <peti> [jumlah\|all]` (`.buka`) · `.equip <id>` · `.unequip` |
 | Ekonomi | `.toko` · `.buy` / `.beli <id> [n]` · `.sell` / `.jual <id> [n\|all]` (struk bergambar) · `.tempa [id]` |
 | Bank (ATM) | `.buy atm` (beli Kartu ATM dulu) → `.setpin <4-6 angka>` (chat pribadi) → `.atm <Nomor Serial> <PIN>` (SN ada di `.profil` / `.kartu`) → Success, ATM terbuka 10 menit untuk `.deposit <n\|all>` · `.tarik <n\|all>` · `.transfer @tag <n>` — jumlah boleh `2k` / `1.5m`; salah PIN 5× = terkunci 10 menit |
 | Driver | `.ojol` (8 stamina, jeda 2 mnt) · `.gofood` (10, Lv 2+, 3 mnt) · `.gocar` (14, Lv 3+, 4 mnt) |
@@ -704,7 +704,7 @@ Project ini dilisensikan di bawah [MIT License (Modified)](./LICENSE) © Zavedya
 - Otomatis: `config.json → backup { auto, everyHours, keep, sendToOwner }`. File disimpan di `backups/` (masuk `.gitignore`). ZIP ditulis sendiri (tanpa dependensi).
 
 ### Catur & stiker meme
-- `.chess @tag` → lawan jawab `y/gas/yes/oke` atau `n/gak/no/gamau` → langkah diketik langsung (`e4`, `Nf3`, `exd5`, `O-O`, `e8=Q`, `e2e4`). Aturan lengkap (rokade, en passant, promosi, skakmat, pat, remis), papan berupa **gambar biasa** (bukan link preview) yang dikirim ulang tiap langkah, papan lama dihapus otomatis. `.chess resign|draw|board|abort|stats`, `.leaderboard chess`. Hadiah menang +250 Gold & 60 XP bila tiap pemain ≥ 10 langkah. Mesin: `lib/chess.js` (diverifikasi dengan perft); sprite: `config/chess/` (dibuat `tools/build-chess-assets.py`).
+- `.chess @tag` → lawan jawab `y/gas/yes/oke` atau `n/gak/no/gamau` → langkah diketik langsung (`e4`, `Nf3`, `exd5`, `O-O`, `e8=Q`, `e2e4`). Aturan lengkap (rokade, en passant, promosi, skakmat, pat, remis), papan berupa **gambar biasa** (bukan link preview) yang dikirim ulang tiap langkah, papan lama dihapus otomatis. `.chess resign|draw|board|abort|stats`, `.leaderboard chess`. Perintah catur salah/kosong (mis. `.chess asdf`) → bot menampilkan **semua perintah catur**. Hadiah menang +250 Gold & 60 XP bila tiap pemain ≥ 10 langkah. Mesin: `lib/chess.js` (diverifikasi dengan perft); sprite: `config/chess/` (dibuat `tools/build-chess-assets.py`).
 - `.smeme atas|bawah` (kirim / reply gambar, video, atau stiker) · `.smeme |bawah` untuk teks bawah saja.
 
 ### Menu
@@ -749,3 +749,31 @@ Tanpa `KODE` → acak (`MIYAKO-XXXXXXXX`). `premium` = hari atau `perm`; `max` =
 - Baris pilihan `.menu` kini punya **deskripsi**, total fitur di sisi kanan (`header`), dan lencana hijau **Popular** (`highlight_label`) untuk 3 kategori paling sering dipakai.
 - Leaderboard memakai **foto profil** pemain (bukan ikon bintang); tanpa foto → lingkaran berwarna + huruf awal. Papan baru: Dino, Abyss, Catur vs AI, 2048.
 - Saran salah ketik & menu hanya menampilkan nama command utama, bukan alias.
+
+
+### Bantuan otomatis semua perintah
+`.<perintah> help` (atau `?` / `bantuan`) menampilkan cara pakai perintah apa pun. Perintah yang wajib berargumen (mis. `.deposit`, `.give`, `.tiktok`, `.hidetag`) dan dipanggil kosong juga otomatis menampilkan cara pakainya — limit **tidak** terpotong. Plugin dengan bantuan sendiri memakai `ownHelp: true` (lib/usage.js).
+
+### ATM: PIN diketik langsung + chat tetap bersih
+`.atm` di grup → bot DM → **ketik PIN-nya langsung di chat pribadi** (angka 4–6 digit, tanpa `.atmpin`; `.atmpin <PIN>` lama tetap jalan tapi disembunyikan dari menu). Setiap kartu ATM baru (`.atm` / `.deposit` / `.tarik` / `.transfer`) otomatis **menghapus kartu & pesan ATM sebelumnya** dan pesan perintah pemain (perlu bot admin di grup), jadi hanya satu kartu terbaru yang tersisa. Matikan: `features.atmCleanChat = false` (`lib/atmtrail.js`).
+
+### `.use` & `.open`
+`.use <id> [jumlah]` memakai item apa pun dari tas: ramuan (HP/stamina), senjata/zirah (langsung dipasang), peti (dibuka). `.open <petikayu|petiemas|petidiamond> [jumlah|all]` membuka peti (maks 10 sekali buka); `.open` tanpa argumen → pemain yang cuma punya satu jenis peti langsung membukanya, admin grup tetap bisa membuka grup seperti dulu (`.opengc` juga tetap ada). Kode: `plugins/rpg/use.js`.
+
+### 🃏 UNO + hadiah acak semua game
+`.uno @tag` → lawan jawab `y`/`gas` (terima) atau `n`/`gamau` → 7 kartu dibagikan **lewat chat pribadi (gambar)**, meja ada di grup. Mainkan kartu dengan mengetik kodenya di grup: `r5`, `gskip`, `brev`, `y+2`, `w r` (wild + warna; tanpa warna = warna terbanyak), `+4 b`, `draw`, `pass`. Aturan: cocokkan warna/angka, Wild +4 hanya bila tak punya kartu warna aktif, Skip/Reverse/+2/+4 melewati lawan, UNO diumumkan otomatis. Perintah lain: `.uno hand|board|resign|abort|stats|help` (perintah tidak jelas → daftar lengkap). Mesin di `lib/uno.js` (disimulasikan 5.000 game), gambar `lib/unoimg.js`.
+
+**Hadiah Gold ACAK ±500–2000 untuk semua game** (`lib/prize.js` — ubah angkanya di satu tempat):
+| Game | Hadiah Gold |
+|---|---|
+| UNO / Catur PvP (menang) / Suit PvP (bonus) | acak 500–2000 (UNO & catur + XP, peluang peti) |
+| Catur PvP remis | acak 250–1000 |
+| Catur vs AI | acak per level: L1 500–950 … L8 1550–2000 (remis ×0,35; bonus clear pertama = acak lagi) |
+| Dino / 2048 / Abyss | acak 500 … 500+1500×(kualitas hasil), mis. skor tinggi → sampai 2000 |
+UNO: maks 10 hadiah/hari per pemain & minimal 8 kartu dimainkan (anti-farming).
+
+### UNO 2–10 pemain + kode ruangan (update)
+Resmi UNO = **minimal 2, maksimal 10 pemain**. Dua cara mulai: **duel** `.uno @tag` (lawan jawab `y`/`gas`), atau **ruang berkode**: `.uno create [2-10]` → bot memberi KODE 4 karakter (mis. `K7QM`) → pemain lain `.uno join K7QM` (atau cukup `.uno K7QM`; tanpa kode = otomatis kalau hanya ada satu ruang) → host `.uno start` (minimal 2; ruang penuh = langsung mulai). Skip/Reverse/+2/+4 berlaku lintas pemain (2 pemain: Reverse = Skip). Pemain bisa `.uno leave` (di ruang) / `.uno resign` (saat main — game lanjut tanpa dia; sisa 1 pemain = menang), dan tidak bergerak 4 menit = keluar otomatis. Perintah lain: `.uno room|hand|board|abort|stats|help`.
+
+### Perbaikan ffmpeg "mjpeg -22 (Invalid argument)"
+ffmpeg baru menolak mjpeg bila frame bertanda *limited range* ("Non full-range YUV is non-standard"). Semua keluaran JPEG kini memakai `-pix_fmt yuvj420p -strict unofficial`; kartu bergambar juga otomatis dirender ulang tanpa foto profil bila masih gagal.

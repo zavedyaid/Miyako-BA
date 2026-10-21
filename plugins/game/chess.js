@@ -188,6 +188,7 @@ const decline = async (g) => {
 /* ── command ─────────────────────────────────────────────────────────────── */
 const chess = definePlugin({
   name: "chess",
+  ownHelp: true,
   aliases: ["catur", "ch"],
   category: "game",
   access: { group: true },
@@ -247,7 +248,8 @@ const chess = definePlugin({
     }
 
     // tantang pemain
-    if (!targetId) return ctx.reply(t("chess.help", { p, n: MIN_MOVES }).split("\n")[0] + "\n" + t("chess.noTag", { p }));
+    // Perintah tidak jelas / kosong / salah ketik → tampilkan SEMUA perintah catur.
+    if (!targetId) return ctx.reply(t("chess.unclear") + t("chess.help", { p, n: MIN_MOVES }));
     if ([ctx.senderId, ctx.senderPn, ctx.senderLid].filter(Boolean).map(bare).includes(bare(targetId))) return ctx.reply(t("chess.self"));
     if (botIdentities(sock).includes(bare(targetId))) return ctx.reply(t("chess.bot"));
     if (mine) return ctx.reply(t("chess.busy", { p }));
@@ -283,6 +285,7 @@ const chess = definePlugin({
 
 const move = definePlugin({
   name: "move",
+  ownHelp: true,
   aliases: ["mv", "langkah"],
   category: "game",
   hidden: true,
@@ -292,7 +295,7 @@ const move = definePlugin({
   async run(env) {
     const { ctx } = env, g = chessStore.playing(ctx.chatId, ctx);
     if (!g) return ctx.reply(t("chess.noGame"));
-    if (!ctx.args.length) return ctx.reply(t("chess.help", { p: ctx.pfx, n: MIN_MOVES }));
+    if (!ctx.args.length) return ctx.reply(t("chess.unclear") + t("chess.help", { p: ctx.pfx, n: MIN_MOVES }));
     return playMove(env, g, ctx.args.join(" "));
   },
 });
