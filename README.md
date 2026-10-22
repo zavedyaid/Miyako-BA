@@ -777,3 +777,29 @@ Resmi UNO = **minimal 2, maksimal 10 pemain**. Dua cara mulai: **duel** `.uno @t
 
 ### Perbaikan ffmpeg "mjpeg -22 (Invalid argument)"
 ffmpeg baru menolak mjpeg bila frame bertanda *limited range* ("Non full-range YUV is non-standard"). Semua keluaran JPEG kini memakai `-pix_fmt yuvj420p -strict unofficial`; kartu bergambar juga otomatis dirender ulang tanpa foto profil bila masih gagal.
+
+## ⚔️ RPG Multiplayer: Klan, War, Raid, Pasar, Kelas
+| Fitur | Perintah | Ringkas |
+|---|---|---|
+| 🏰 **Klan** | `.clan create <nama>` · `join` · `invite @tag` · `accept` · `leave` · `kick` · `promote/demote/transfer @tag` · `open/close` · `desc` · `setchat` · `donate <gold>` · `upgrade` · `daily` · `members` · `list` · `info` · `disband yes` | Buat klan (10.000 Gold, Lv 5+), peran leader/officer/member, kas klan dari donasi, **upgrade level klan = +2% HP/ATK/DEF semua anggota per level** (maks Lv 10 = +20%), kapasitas 10 + 2×level. |
+| ⚔️ **War klan** | `.clan war <klan>` / `war search` / `war accept|decline` · `.war` · `.war attack <no>` (alias `.attack`, `.serang`) · `.war roster` · `.war surrender yes` | Min. 3 anggota/klan. Roster terkuat di-snapshot, tiap anggota 2 serangan (jeda 5 mnt) ke musuh pilihan → ⭐1–3 per serangan (terbaik per target). Bintang terbanyak menang (6 jam / semua serangan habis). **Hadiah Gold acak 500–2000** untuk pemenang yang menyerang (250–1000 untuk lainnya) + trofi + kas klan. |
+| 👹 **Raid boss** | `.raid [easy\|normal\|hard]` · `.raid attack` (alias `.hit`) · `.raid status` | Satu boss bersama satu grup, 90 menit. Damage semua pemain dijumlahkan; boss kalah → semua yang ikut dapat Gold acak (easy 500–1000 · normal 800–1600 · hard 1200–2000) + XP; MVP dapat Peti Emas, last-hit Peti Kayu. |
+| 🏪 **Pasar** | `.market` · `sell <id> <jml> <harga>` · `buy <no> [jml]` · `mine` · `cancel <no>` | Jual-beli item antar pemain, escrow, pajak 5%, listing kedaluwarsa 3 hari dikembalikan. |
+| 🎭 **Kelas** | `.class [warrior\|mage\|archer\|rogue\|cleric]` | Pengali HP/ATK/DEF + crit/dodge; berlaku di hunt, duel, raid, war. Pilih pertama gratis (Lv 3+), ganti 2.000 Gold. |
+Penyelesaian war/raid/jackpot otomatis tiap 20 detik oleh `lib/sched.js` (hasil diumumkan ke grup klan / grup raid). Kode: `lib/clan.js`, `lib/raid.js`, `lib/market.js`, `plugins/rpg/{clan,raid,market,class}.js`.
+
+## 🎰 Casino (11 game, Gold virtual)
+Taruhan 100–500.000 Gold dari **dompet**; bisa ditulis `500`, `2k`, `1jt`, `half`, `all`.
+| Lawan bandar | Perintah | RTP |
+|---|---|---|
+| 🎰 Slot (777 = ×1000) | `.slot <bet>` | ≈93% |
+| 🎡 Roulette Eropa | `.roulette <bet> red\|black\|odd\|even\|low\|high\|d1-d3\|0-36` | 97,3% |
+| 🎲 Dadu (2 dadu) | `.dadu <bet> big\|small\|seven\|1-6` | 92–94% |
+| 🪙 Koin | `.coin <bet> head\|tail` | 97,5% |
+| 🃏 Blackjack (hit/stand/double, BJ 3:2) | `.bj <bet>` lalu ketik `hit` / `stand` / `double` | ≈94–99% |
+| ⬆️ Hi-Lo (streak, cash out) | `.hilo <bet>` lalu `higher` / `lower` / `cash` | ≈98%/langkah |
+| 🎴 Baccarat | `.baccarat <bet> player\|banker\|tie` | 98,7 / 98,8 / 85% |
+| 🎡 Wheel ×0–×5 | `.wheel <bet>` | ≈94% |
+**Lawan pemain** (taruhan sama, pemenang bawa pot − 3%): `.dadu @tag <bet>`, `.coin @tag <bet>`, `.highcard @tag <bet>` — lawan jawab `y`/`gas`.
+**Beramai-ramai**: `.jackpot <bet>` — pot grup 60 detik, 1 pemenang acak berbobot taruhan (bawa 95%), minimal 2 peserta (kalau 1, dikembalikan).
+Info: `.casino` (menu) · `.casino stats [@tag]` · `.casino top`. RTP diverifikasi simulasi Monte-Carlo; blackjack/hi-lo yang ditinggalkan >5 menit otomatis stand / cash-out. Kode: `lib/casino.js`, `plugins/game/casino.js`.
