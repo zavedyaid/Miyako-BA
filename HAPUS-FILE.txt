@@ -1,0 +1,12 @@
+HAPUS file lama ini dari bot kamu (sudah tidak dipakai, kodenya sudah diganti):
+
+  config/games/chess.html
+  lib/chessrich.js
+  lib/chessweb.js
+  lib/pngdata.cjs
+  plugins/tools/richnet.js
+
+Opsional: di config/config.json hapus baris  "web": { "publicUrl": ..., "secret": ... }
+(tidak dipakai lagi; dibiarkan pun tidak masalah).
+
+Cara pasang: ekstrak zip ini ke folder bot (timpa file yang sama), hapus file di atas, lalu restart bot.
